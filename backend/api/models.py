@@ -1,6 +1,17 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+def profile_path(instance, filename):
+    return f"user_{instance.user.id}/{filename}"
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    avatar = models.ImageField(default='media/user.png', upload_to=profile_path)
+    bio = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.user.username
+
 
 class Transaction(models.Model):
     class TransactionType(models.TextChoices):

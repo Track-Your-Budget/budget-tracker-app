@@ -1,15 +1,25 @@
-import axios from 'axios'
+import axios, { AxiosError, type AxiosRequestConfig } from 'axios'
+
+// Access token lives only in memory; refresh token is an httpOnly cookie set by the backend.
+let accessToken: string | null = null
+
+export function setAccessToken(token: string | null) {
+  accessToken = token
+}
+
+export function getAccessToken(): string | null {
+  return accessToken
+}
 
 const apiClient = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 })
 
-// Attach access token to every request
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`
   }
   return config
 })
@@ -21,30 +31,59 @@ export function setUnauthorizedHandler(fn: UnauthorizedHandler) {
   unauthorizedHandler = fn
 }
 
-let isRefreshing = false
-let pendingRequests: Array<(token: string) => void> = []
-
-function onRefreshed(token: string) {
-  pendingRequests.forEach((cb) => cb(token))
-  pendingRequests = []
+type QueueEntry = {
+  resolve: (token: string) => void
+  reject: (err: unknown) => void
 }
 
-// Intercept 401 responses: try to refresh, then retry, else logout
+let isRefreshing = false
+let pendingRequests: QueueEntry[] = []
+
+function flushQueue(token: string | null, err: unknown) {
+  const queued = pendingRequests
+  pendingRequests = []
+  for (const entry of queued) {
+    if (token) entry.resolve(token)
+    else entry.reject(err)
+  }
+}
+
+/**
+ * Calls the cookie-aware refresh endpoint. The refresh token is sent
+ * automatically via the httpOnly cookie; no body needed.
+ */
+export async function refreshAccessToken(): Promise<string> {
+  const { data } = await axios.post<{ access: string }>(
+    '/api/token/refresh/',
+    {},
+    { withCredentials: true },
+  )
+  accessToken = data.access
+  return data.access
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config
+  async (error: AxiosError) => {
+    const originalRequest = error.config as
+      | (AxiosRequestConfig & { _retry?: boolean })
+      | undefined
 
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    if (!originalRequest || error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error)
     }
 
     if (isRefreshing) {
-      // Queue this request until refresh completes
-      return new Promise((resolve) => {
-        pendingRequests.push((token: string) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          resolve(apiClient(originalRequest))
+      return new Promise((resolve, reject) => {
+        pendingRequests.push({
+          resolve: (token) => {
+            originalRequest.headers = {
+              ...originalRequest.headers,
+              Authorization: `Bearer ${token}`,
+            }
+            resolve(apiClient(originalRequest))
+          },
+          reject,
         })
       })
     }
@@ -52,32 +91,23 @@ apiClient.interceptors.response.use(
     originalRequest._retry = true
     isRefreshing = true
 
-    const refreshToken = localStorage.getItem('refresh_token')
-    if (!refreshToken) {
-      isRefreshing = false
-      unauthorizedHandler?.()
-      return Promise.reject(error)
-    }
-
     try {
-      console.log('Attempting token refresh with refresh token:', refreshToken)
-      const { data } = await axios.post('/api/token/refresh/', { refresh: refreshToken })
-      const newAccessToken: string = data.access
-
-      localStorage.setItem('auth_token', newAccessToken)
-      apiClient.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`
-      onRefreshed(newAccessToken)
-
-      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+      const newAccessToken = await refreshAccessToken()
+      flushQueue(newAccessToken, null)
+      originalRequest.headers = {
+        ...originalRequest.headers,
+        Authorization: `Bearer ${newAccessToken}`,
+      }
       return apiClient(originalRequest)
-    } catch {
-      pendingRequests = []
+    } catch (refreshErr) {
+      flushQueue(null, refreshErr)
+      accessToken = null
       unauthorizedHandler?.()
-      return Promise.reject(error)
+      return Promise.reject(refreshErr)
     } finally {
       isRefreshing = false
     }
-  }
+  },
 )
 
 export default apiClient

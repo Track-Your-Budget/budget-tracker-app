@@ -14,6 +14,16 @@ export interface MonthlyData {
   expense: number
 }
 
+export interface CurrentUser {
+  id: number
+  username: string
+  first_name: string
+  last_name: string
+  email: string
+  image: string | null
+  bio: string
+}
+
 export const CATEGORIES = [
   { value: 'gehalt', label: 'Gehalt' },
   { value: 'miete', label: 'Miete' },

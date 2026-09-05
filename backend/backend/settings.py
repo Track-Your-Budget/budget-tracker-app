@@ -27,7 +27,7 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -39,18 +39,29 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
-    'corsheaders',
-
+    # Local apps
     'api',
-    'django.contrib.sites',
 
-    'rest_framework',
-    'rest_framework.authtoken',
-
+    # Auth & Social Apps
+    'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
 
+    # Social account providers
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.github',
+    'allauth.socialaccount.providers.microsoft',
+
+    # Third-party apps
+    'rest_framework',
+    'rest_framework.authtoken',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
+
+    # Django default apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -63,16 +74,29 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),    
 }
 
-REST_USE_JWT = True
-REST_AUTH_TOKEN_MODEL = None
+REST_AUTH = {
+    'JWT_SERIALIZER': 'api.serializers.JWTSerializer',
+    'USE_JWT': True,
+    # Refresh token lives ONLY in an httpOnly cookie; access token stays in JSON body.
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_REFRESH_COOKIE': 'jwt-refresh',
+    'JWT_AUTH_SAMESITE': 'Lax',
+    'JWT_AUTH_SECURE': os.getenv('JWT_AUTH_SECURE', 'False') == 'True',
+    'SESSION_LOGIN': False,
+}
 
 from datetime import timedelta
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=4),
     'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -90,32 +114,13 @@ MIDDLEWARE = [
 
 SITE_ID = 1
 
-# Disable traditional email verification since Google handles email safety
+# Social provider already authenticated the user; skip allauth's email
+# verification flow (which would otherwise require account_confirm_email URLs).
 ACCOUNT_EMAIL_VERIFICATION = 'none'
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = False
 
-# Automatically link a Google sign-in to an existing account if emails match
-SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
-SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
-
-CALLBACK_URL = os.getenv('CALLBACK_URL', 'http://localhost:5173')
-
-GOOGLE_OAUTH2_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
-
-# Add your Google Credentials safely
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'APPS': [{
-            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
-            'secret': os.getenv('GOOGLE_SECRET'),
-            'key': ''
-        }],
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'online'},
-    }
-}
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -123,6 +128,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 ROOT_URLCONF = 'backend.urls'
+
+SOCIAL_AUTH_REDIRECT_URL = os.getenv('FRONTEND_URL')
 
 TEMPLATES = [
     {
@@ -193,3 +200,35 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media Files Setup
+MEDIA_URL = '/media/'
+
+# Logging: make the `api` logger emit INFO to the console so we can see
+# the full social-auth provider payload (see api/signals.py).
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'api': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+
+MEDIA_ROOT = BASE_DIR

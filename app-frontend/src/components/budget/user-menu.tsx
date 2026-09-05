@@ -1,4 +1,5 @@
 import { User, Settings, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -10,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 export function UserMenu({ onLogout, userName }: { onLogout: () => void; userName?: string }) {
+  const navigate = useNavigate()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -27,7 +29,7 @@ export function UserMenu({ onLogout, userName }: { onLogout: () => void; userNam
             <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuItem className="cursor-pointer">
+        <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/profile')}>
           <User className="mr-2 h-4 w-4" />
           Profil
         </DropdownMenuItem>

@@ -1,8 +1,10 @@
 trigger:
 - main
+- test
 
 pr:
 - main
+- test
 
 pool:
   name: 'Default'
@@ -20,7 +22,6 @@ stages:
 - stage: Test
   displayName: 'Test & Lint'
   jobs:
-
   - job: Frontend_Test
     displayName: 'Frontend — Lint'
     steps:
@@ -30,7 +31,6 @@ stages:
         restoreKeys: 'npm | "$(Agent.OS)"'
         path: $(npm_config_cache)
       displayName: 'Cache npm'
-
     - script: |
         cd app-frontend
         npm ci
@@ -46,14 +46,11 @@ stages:
         restoreKeys: 'pip | "$(Agent.OS)"'
         path: $(PIP_CACHE_DIR)
       displayName: 'Cache pip'
-
     - script: |
         python3 -m venv backend/venv
         source backend/venv/bin/activate
         pip install --cache-dir $(PIP_CACHE_DIR) -r backend/requirements.txt
       displayName: 'Install dependencies'
-
-    # Check & Test zusammengefasst, um Variablen-Redundanz zu vermeiden
     - script: |
         source backend/venv/bin/activate
         cd backend
@@ -75,34 +72,61 @@ stages:
 - stage: Deploy
   displayName: 'Build & Push Docker Images'
   dependsOn: Test
-  # Wird nur ausgeführt, wenn Tests bestanden sind UND es der main-Branch ist (kein PR-Build)
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  # Wird ausgeführt, wenn Tests bestanden sind UND es main oder test ist
+  condition: and(succeeded(), in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/test'))
   jobs:
+  - deployment: Push_Images_Staging
+    displayName: 'Build & Push (staging)'
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/test')
+    environment: 'staging'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - task: Docker@2
+            displayName: 'Login to Docker Hub'
+            inputs:
+              command: login
+              containerRegistry: 'DockerHub-Connection'
+          - script: |
+              docker build \
+                --build-arg VITE_GOOGLE_CLIENT_ID=$(GOOGLE_CLIENT_ID) \
+                -t eduardgohl/budget-tracker-frontend:$(Build.BuildId) \
+                -f app-frontend/Dockerfile app-frontend
+              docker push eduardgohl/budget-tracker-frontend:$(Build.BuildId)
+            displayName: 'Build & Push Frontend'
+          - script: |
+              docker build \
+                -t eduardgohl/budget-tracker-backend:$(Build.BuildId) \
+                -f backend/Dockerfile backend
+              docker push eduardgohl/budget-tracker-backend:$(Build.BuildId)
+            displayName: 'Build & Push Backend'
 
-  - deployment: Push_Images
-    displayName: 'Build & Push to Docker Hub'
+  - deployment: Push_Images_Prod
+    displayName: 'Build & Push (production)'
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
     environment: 'production'
     strategy:
       runOnce:
         deploy:
           steps:
           - checkout: self
-
           - task: Docker@2
             displayName: 'Login to Docker Hub'
             inputs:
               command: login
               containerRegistry: 'DockerHub-Connection'
-
           - script: |
+          
               docker build \
+                --build-arg VITE_GOOGLE_CLIENT_ID=$(GOOGLE_CLIENT_ID) \
                 -t eduardgohl/budget-tracker-frontend:$(Build.BuildId) \
                 -t eduardgohl/budget-tracker-frontend:latest \
                 -f app-frontend/Dockerfile app-frontend
               docker push eduardgohl/budget-tracker-frontend:$(Build.BuildId)
               docker push eduardgohl/budget-tracker-frontend:latest
             displayName: 'Build & Push Frontend'
-
           - script: |
               docker build \
                 -t eduardgohl/budget-tracker-backend:$(Build.BuildId) \
@@ -120,27 +144,39 @@ stages:
   condition: succeeded()
   jobs:
   - job: PatchImageTags
-    displayName: 'Patch image tags in manifest repo'
+    displayName: 'Patch image tags via Kustomize'
     steps:
     - checkout: none
-
     - script: |
-        # Manifest-Repo klonen (HTTPS mit PAT)
+        # 1. Manifest-Repo klonen
         REPO_URL="https://$(MANIFEST_REPO_PAT)@dev.azure.com/edodevops0169/TackYourBudget/_git/app-manifests"
         git clone "$REPO_URL" manifests
         cd manifests
 
-        # Image-Tags auf aktuelle Build-ID setzen (mit k8s/ Pfad!)
-        sed -i "s|eduardgohl/budget-tracker-frontend:[^ ]*|eduardgohl/budget-tracker-frontend:$(Build.BuildId)|g" k8s/frontend.yaml
-        sed -i "s|eduardgohl/budget-tracker-backend:[^ ]*|eduardgohl/budget-tracker-backend:$(Build.BuildId)|g" k8s/backend.yaml
+        # 2. Umgebung anhand des Branches bestimmen
+        if [ "$(Build.SourceBranch)" == "refs/heads/main" ]; then
+          OVERLAY_DIR="overlays/prod"
+        elif [ "$(Build.SourceBranch)" == "refs/heads/test" ]; then
+          OVERLAY_DIR="overlays/test"
+        else
+          echo "Kein valider Deployment-Branch. Abbruch."
+          exit 0
+        fi
 
-        # Commit & Push
-        git config user.email "pipeline@devops"
+        echo "Aktualisiere Manifeste in: $OVERLAY_DIR"
+        cd $OVERLAY_DIR
+
+        # 3. Kustomize nutzen statt sed
+        kustomize edit set image eduardgohl/budget-tracker-frontend=eduardgohl/budget-tracker-frontend:$(Build.BuildId)
+        kustomize edit set image eduardgohl/budget-tracker-backend=eduardgohl/budget-tracker-backend:$(Build.BuildId)
+
+        # 4. Commit & Push
+        cd ../..
+        git config user.email "pipeline@testops"
         git config user.name "Azure Pipeline"
-        git add k8s/frontend.yaml k8s/backend.yaml
-        git commit -m "chore: update image tags to $(Build.BuildId) [skip ci]"
+        git add $OVERLAY_DIR/kustomization.yaml
+        git commit -m "chore: update $OVERLAY_DIR image tags to $(Build.BuildId) [skip ci]"
         git push
-      displayName: 'Update image tags and push'
+      displayName: 'Update image tags with Kustomize and push'
       env:
-        # Dies stellt sicher, dass das Secret sicher an das Skript übergeben wird
         MANIFEST_REPO_PAT: $(MANIFEST_REPO_PAT)

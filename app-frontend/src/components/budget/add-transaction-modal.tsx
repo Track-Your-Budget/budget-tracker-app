@@ -146,7 +146,7 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="grid grid-cols-2 gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Abbrechen
             </Button>

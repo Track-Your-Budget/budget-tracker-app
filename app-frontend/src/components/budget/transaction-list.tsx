@@ -1,25 +1,17 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowUpRight, ArrowDownRight, MoreHorizontal } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CATEGORIES, CATEGORY_COLORS, type Transaction } from '@/lib/types'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Trash2 } from 'lucide-react'
 
 interface TransactionListProps {
   transactions: Transaction[]
   isLoading?: boolean
-  onDeleteTransaction?: (id: string) => void
+  onSelectTransaction?: (transaction: Transaction) => void
 }
 
-export function TransactionList({ transactions, isLoading, onDeleteTransaction }: TransactionListProps) {
+export function TransactionList({ transactions, isLoading, onSelectTransaction }: TransactionListProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
@@ -78,9 +70,11 @@ export function TransactionList({ transactions, isLoading, onDeleteTransaction }
         ) : (
           <div className="space-y-4">
             {transactions.map((transaction) => (
-              <div
+              <button
                 key={transaction.id}
-                className="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-secondary/50"
+                type="button"
+                onClick={() => onSelectTransaction?.(transaction)}
+                className="flex w-full items-center justify-between rounded-lg p-3 text-left transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="flex items-center gap-4">
                   <div
@@ -110,37 +104,16 @@ export function TransactionList({ transactions, isLoading, onDeleteTransaction }
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      'font-semibold',
-                      transaction.type === 'income' ? 'text-primary' : 'text-destructive'
-                    )}
-                  >
-                    {transaction.type === 'income' ? '+' : '-'}
-                    {formatCurrency(transaction.amount)}
-                  </span>
-                  {onDeleteTransaction && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Aktionen</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => onDeleteTransaction(transaction.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Löschen
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                <span
+                  className={cn(
+                    'font-semibold',
+                    transaction.type === 'income' ? 'text-primary' : 'text-destructive'
                   )}
-                </div>
-              </div>
+                >
+                  {transaction.type === 'income' ? '+' : '-'}
+                  {formatCurrency(transaction.amount)}
+                </span>
+              </button>
             ))}
           </div>
         )}

@@ -1,6 +1,10 @@
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
 
+# baked into the JS bundle by Vite at build time
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 WORKDIR /app
 
 COPY package.json package-lock.json ./

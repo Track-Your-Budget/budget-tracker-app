@@ -5,6 +5,7 @@ import { OverviewCards } from '@/components/budget/overview-cards'
 import { AddTransactionModal } from '@/components/budget/add-transaction-modal'
 import { UserMenu } from '@/components/budget/user-menu'
 import { TransactionList } from '@/components/budget/transaction-list'
+import { TransactionDetailsModal } from '@/components/budget/transaction-details-modal'
 import { ExpenseChart } from '@/components/budget/expense-chart'
 import { CategoryBreakdown } from '@/components/budget/category-breakdown'
 import type { Transaction, MonthlyData } from '@/lib/types'
@@ -26,6 +27,8 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const { toast } = useToast()
 
   // Fetch data on mount - ready for API integration
@@ -72,10 +75,6 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
 
   const balance = totals.income - totals.expenses
 
-  console.log('Current month transactions:', currentMonthTransactions)
-  console.log('Calculated totals:', totals)
-  console.log('Calculated balance:', balance)
-
   const handleAddTransaction = useCallback(async (newTransaction: Omit<Transaction, 'id'>) => {
     try {
       const response = await apiClient.post<Transaction>('/transactions/', newTransaction)
@@ -94,8 +93,46 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
     }
   }, [toast])
 
-  const handleDeleteTransaction = useCallback((id: string) => {
-    setTransactions((prev) => prev.filter((t) => t.id !== id))
+  const handleDeleteTransaction = useCallback(async (id: string) => {
+    try {
+      await apiClient.delete(`/transactions/${id}/`)
+      setTransactions((prev) => prev.filter((t) => t.id !== id))
+      toast({
+        title: 'Erfolg',
+        description: 'Transaktion wurde gelöscht.',
+      })
+    } catch (error) {
+      console.error('Error deleting transaction:', error)
+      toast({
+        title: 'Fehler',
+        description: 'Transaktion konnte nicht gelöscht werden.',
+        variant: 'destructive',
+      })
+    }
+  }, [toast])
+
+  const handleUpdateTransaction = useCallback(async (updated: Transaction) => {
+    try {
+      const response = await apiClient.put<Transaction>(`/transactions/${updated.id}/`, updated)
+      setTransactions((prev) => prev.map((t) => (t.id === updated.id ? response.data : t)))
+      setSelectedTransaction(response.data)
+      toast({
+        title: 'Erfolg',
+        description: 'Transaktion wurde aktualisiert.',
+      })
+    } catch (error) {
+      console.error('Error updating transaction:', error)
+      toast({
+        title: 'Fehler',
+        description: 'Transaktion konnte nicht aktualisiert werden.',
+        variant: 'destructive',
+      })
+    }
+  }, [toast])
+
+  const handleSelectTransaction = useCallback((transaction: Transaction) => {
+    setSelectedTransaction(transaction)
+    setIsDetailsOpen(true)
   }, [])
 
   // Sort transactions by date (newest first)
@@ -125,6 +162,11 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
 
         {/* Overview Cards */}
         <section className="mb-8">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5">
+            <span className=" font-semibold text-primary capitalize">
+              {now.toLocaleString('de-DE', { month: 'long', year: 'numeric' })}
+            </span>
+          </div>
           <OverviewCards
             balance={balance}
             income={totals.income}
@@ -140,7 +182,7 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
             <TransactionList
               transactions={sortedTransactions.slice(0, 10)}
               isLoading={isLoading}
-              onDeleteTransaction={handleDeleteTransaction}
+              onSelectTransaction={handleSelectTransaction}
             />
           </div>
            {/* Right Column - Charts */}
@@ -150,6 +192,13 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
           </div>
         </div>
       </div>
+      <TransactionDetailsModal
+        transaction={selectedTransaction}
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        onUpdateTransaction={handleUpdateTransaction}
+        onDeleteTransaction={handleDeleteTransaction}
+      />
     </div>
   )
 }
