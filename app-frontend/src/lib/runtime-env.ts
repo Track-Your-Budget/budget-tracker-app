@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-const win = typeof window !== 'undefined' ? window._env_ ?? {} : {}
+const win = typeof window !== 'undefined' ? (window._env_ ?? {}) : {}
 
 export const runtimeEnv: RuntimeEnv = {
   GOOGLE_LINK: win.GOOGLE_LINK || import.meta.env.VITE_GOOGLE_LINK || '',

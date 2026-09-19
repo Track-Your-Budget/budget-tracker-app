@@ -13,4 +13,3 @@ interface AuthProvidersProps {
 export function AuthProviders({ children }: AuthProvidersProps) {
   return <>{children}</>
 }
-

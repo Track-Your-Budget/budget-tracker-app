@@ -128,20 +128,13 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                 rules={{
                   required: 'Bitte geben Sie einen Betrag ein.',
                   validate: (value) =>
-                    Number.parseFloat(value) > 0 ||
-                    'Der Betrag muss größer als 0 sein.',
+                    Number.parseFloat(value) > 0 || 'Der Betrag muss größer als 0 sein.',
                 }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Betrag (€)</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        {...field}
-                      />
+                      <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -192,15 +185,10 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Notizen{' '}
-                      <span className="text-muted-foreground text-xs">(optional)</span>
+                      Notizen <span className="text-muted-foreground text-xs">(optional)</span>
                     </FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Zusätzliche Informationen..."
-                        rows={3}
-                        {...field}
-                      />
+                      <Textarea placeholder="Zusätzliche Informationen..." rows={3} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

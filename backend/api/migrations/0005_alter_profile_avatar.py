@@ -14,11 +14,6 @@ def clear_placeholder(apps, schema_editor):
     Profile.objects.filter(avatar=PLACEHOLDER).update(avatar='')
 
 
-def restore_placeholder(apps, schema_editor):
-    Profile = apps.get_model('api', 'Profile')
-    Profile.objects.filter(avatar='').update(avatar=PLACEHOLDER)
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -31,5 +26,9 @@ class Migration(migrations.Migration):
             name='avatar',
             field=models.ImageField(blank=True, upload_to=api.models.profile_path),
         ),
-        migrations.RunPython(clear_placeholder, restore_placeholder),
+        # No reverse: which profiles were blank before this ran vs. cleared
+        # by it isn't recorded anywhere, so a "restore" can only guess and
+        # would overwrite unrelated profiles (new signups, deliberately
+        # cleared avatars) with a placeholder they never had.
+        migrations.RunPython(clear_placeholder, migrations.RunPython.noop),
     ]

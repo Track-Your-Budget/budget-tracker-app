@@ -16,4 +16,3 @@ export function SocialLoginButtons() {
     </div>
   )
 }
-

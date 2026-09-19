@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Wallet, TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/format'
 
 interface OverviewCardsProps {
   balance: number
@@ -10,13 +11,6 @@ interface OverviewCardsProps {
 }
 
 export function OverviewCards({ balance, income, expenses, isLoading }: OverviewCardsProps) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(amount)
-  }
-
   const cards = [
     {
       title: 'Gesamtsaldo',
@@ -60,7 +54,12 @@ export function OverviewCards({ balance, income, expenses, isLoading }: Overview
                   </p>
                 )}
               </div>
-              <div className={cn('flex h-12 w-12 items-center justify-center rounded-full', card.iconBg)}>
+              <div
+                className={cn(
+                  'flex h-12 w-12 items-center justify-center rounded-full',
+                  card.iconBg,
+                )}
+              >
                 <card.icon className={cn('h-6 w-6', card.iconColor)} />
               </div>
             </div>

@@ -49,6 +49,13 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = ['id', 'title', 'notes', 'amount', 'category', 'date', 'type']
 
+    def validate_amount(self, value):
+        # Sign comes from `type`; every consumer (summaries, charts,
+        # category breakdown) assumes amount itself is always positive.
+        if value <= 0:
+            raise serializers.ValidationError('Amount must be greater than zero.')
+        return value
+
     def create(self, validated_data):
         # Inject the authenticated user from the request context
         user = self.context['request'].user

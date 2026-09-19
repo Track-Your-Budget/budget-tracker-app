@@ -1,4 +1,5 @@
 import type { Transaction } from '@/lib/types'
+import { toIsoDate } from '@/lib/utils'
 
 /**
  * Shape the transaction form works with. Amount stays a string because that is
@@ -15,10 +16,7 @@ export interface TransactionFormValues {
 
 /** Today as `yyyy-mm-dd`, the value format of `<input type="date">`. */
 export function todayIso(): string {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
+  return toIsoDate(new Date())
 }
 
 export function toFormValues(transaction: Transaction): TransactionFormValues {
