@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { runtimeEnv } from '@/lib/runtime-env'
 
 /**
  * Redirects the browser to Microsoft's OAuth authorization endpoint.
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button'
  * the Microsoft backend endpoint (not the GitHub one).
  */
 export function MicrosoftLoginButton() {
-  const microsoftAuthUrl = import.meta.env.VITE_MICROSOFT_LINK
+  const microsoftAuthUrl = runtimeEnv.MICROSOFT_LINK
 
   if (!microsoftAuthUrl) {
     return null

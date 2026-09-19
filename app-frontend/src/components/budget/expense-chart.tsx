@@ -1,17 +1,23 @@
-'use client'
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts'
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart'
 import type { MonthlyData } from '@/lib/types'
+
+// Colors come from the theme tokens in index.css, not from literals, so a
+// theme switch reaches the chart like it reaches everything else. Grid, axis
+// ticks, tooltip and legend are styled by ChartContainer / ChartTooltipContent
+// through the same tokens.
+const chartConfig = {
+  income: { label: 'Einnahmen', color: 'var(--chart-1)' },
+  expense: { label: 'Ausgaben', color: 'var(--chart-4)' },
+} satisfies ChartConfig
 
 interface ExpenseChartProps {
   data: MonthlyData[]
@@ -46,57 +52,43 @@ export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
         <CardTitle>Monatliche Übersicht</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.01 240)" />
-              <XAxis
-                dataKey="month"
-                stroke="oklch(0.6 0 0)"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="oklch(0.6 0 0)"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={formatCurrency}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'oklch(0.18 0.01 240)',
-                  border: '1px solid oklch(0.25 0.01 240)',
-                  borderRadius: '8px',
-                  color: 'oklch(0.95 0 0)',
-                }}
-                formatter={(value: unknown) => [formatCurrency(value as number)]}
-                labelStyle={{ color: 'oklch(0.95 0 0)' }}
-              />
-              <Legend
-                wrapperStyle={{ paddingTop: '20px' }}
-                formatter={(value) => (
-                  <span style={{ color: 'oklch(0.95 0 0)' }}>
-                    {value === 'income' ? 'Einnahmen' : 'Ausgaben'}
-                  </span>
-                )}
-              />
-              <Bar
-                dataKey="income"
-                name="income"
-                fill="oklch(0.65 0.18 160)"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="expense"
-                name="expense"
-                fill="oklch(0.55 0.22 25)"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full">
+          <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
+            <YAxis
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={formatCurrency}
+            />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  formatter={(value, name, item) => (
+                    <>
+                      <div
+                        className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <div className="flex flex-1 items-center justify-between gap-2 leading-none">
+                        <span className="text-muted-foreground">
+                          {chartConfig[name as keyof typeof chartConfig]?.label ?? name}
+                        </span>
+                        <span className="text-foreground font-mono font-medium tabular-nums">
+                          {formatCurrency(Number(value))}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                />
+              }
+            />
+            <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expense" fill="var(--color-expense)" radius={[4, 4, 0, 0]} />
+            <ChartLegend content={<ChartLegendContent />} />
+          </BarChart>
+        </ChartContainer>
       </CardContent>
     </Card>
   )

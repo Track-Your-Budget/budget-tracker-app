@@ -1,9 +1,21 @@
 from django.urls import path
 from dj_rest_auth.jwt_auth import get_refresh_view
 from dj_rest_auth.views import LogoutView
-from .views import GoogleLogin, GitHubLogin, MicrosoftLogin, TransactionView, TransactionDetailView, MonthlySummaryView, UserMe
+from .views import (
+    GitHubLogin,
+    GoogleLogin,
+    HealthView,
+    MicrosoftLogin,
+    MonthlySummaryView,
+    TransactionDetailView,
+    TransactionView,
+    UserMe,
+)
 
 urlpatterns = [
+    # Unauthenticated probe target for Kubernetes.
+    path('health/', HealthView.as_view(), name='health'),
+
     # Social login endpoints
     path('google/login/', GoogleLogin.as_view(), name='google_login'),
     path('github/login/', GitHubLogin.as_view(), name='github_login'),

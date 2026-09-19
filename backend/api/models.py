@@ -6,7 +6,11 @@ def profile_path(instance, filename):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    avatar = models.ImageField(default='media/user.png', upload_to=profile_path)
+    # No placeholder file: an unset avatar stays empty and the serializer
+    # reports image=None, which the SPA renders as the user's initials. A
+    # default pointing into MEDIA_ROOT would be shadowed by the media volume
+    # mounted over that path in the cluster.
+    avatar = models.ImageField(upload_to=profile_path, blank=True)
     bio = models.TextField(blank=True)
 
     def __str__(self):

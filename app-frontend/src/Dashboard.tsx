@@ -3,13 +3,11 @@ import { useToast } from '@/hooks/use-toast'
 import apiClient from '@/lib/apiClient'
 import { OverviewCards } from '@/components/budget/overview-cards'
 import { AddTransactionModal } from '@/components/budget/add-transaction-modal'
-import { UserMenu } from '@/components/budget/user-menu'
 import { TransactionList } from '@/components/budget/transaction-list'
 import { TransactionDetailsModal } from '@/components/budget/transaction-details-modal'
 import { ExpenseChart } from '@/components/budget/expense-chart'
 import { CategoryBreakdown } from '@/components/budget/category-breakdown'
 import type { Transaction, MonthlyData } from '@/lib/types'
-import { LayoutDashboard } from 'lucide-react'
 
 
 //  API call 
@@ -23,7 +21,7 @@ async function fetchMonthlyData(): Promise<MonthlyData[]> {
   return response.data
 }
 
-export default function BudgetDashboard({ onLogout, userName }: { onLogout: () => void; userName?: string }) {
+export default function BudgetDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -31,12 +29,11 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const { toast } = useToast()
 
-  // Fetch data on mount - ready for API integration
+  // Fetch data on mount
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true)
       try {
-        // Replace these with actual API calls
         const [transactionsData, monthlyDataResult] = await Promise.all([
           fetchTransactions(),
           fetchMonthlyData(),
@@ -141,31 +138,17 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
   )
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20">
-              <LayoutDashboard className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Budget Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Verwalten Sie Ihre Finanzen</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <AddTransactionModal onAddTransaction={handleAddTransaction} />
-            <UserMenu onLogout={onLogout} userName={userName} />
-          </div>
-        </header>
-
         {/* Overview Cards */}
         <section className="mb-8">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5">
-            <span className=" font-semibold text-primary capitalize">
-              {now.toLocaleString('de-DE', { month: 'long', year: 'numeric' })}
-            </span>
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5">
+              <span className=" font-semibold text-primary capitalize">
+                {now.toLocaleString('de-DE', { month: 'long', year: 'numeric' })}
+              </span>
+            </div>
+            <AddTransactionModal onAddTransaction={handleAddTransaction} />
           </div>
           <OverviewCards
             balance={balance}

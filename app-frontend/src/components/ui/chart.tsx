@@ -1,5 +1,3 @@
-'use client'
-
 import * as React from 'react'
 import * as RechartsPrimitive from 'recharts'
 import type { Payload, ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent'

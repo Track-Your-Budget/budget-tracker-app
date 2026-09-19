@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { runtimeEnv } from '@/lib/runtime-env'
 
 /**
  * Redirects the browser to GitHub's OAuth authorization endpoint. GitHub only
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button'
  * and exchanges it for backend JWTs.
  */
 export function GithubLoginButton() {
-  const githubAuthUrl = import.meta.env.VITE_GITHUB_LINK
+  const githubAuthUrl = runtimeEnv.GITHUB_LINK
 
   if (!githubAuthUrl) {
     return null

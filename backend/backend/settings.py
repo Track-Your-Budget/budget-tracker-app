@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 import os
 from dotenv import load_dotenv
 
@@ -76,7 +78,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
-    ),    
+    ),
 }
 
 REST_AUTH = {
@@ -89,8 +91,6 @@ REST_AUTH = {
     'JWT_AUTH_SECURE': os.getenv('JWT_AUTH_SECURE', 'False') == 'True',
     'SESSION_LOGIN': False,
 }
-
-from datetime import timedelta
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
@@ -122,14 +122,35 @@ SOCIALACCOUNT_EMAIL_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = False
 
 
+FRONTEND_URL = os.getenv('FRONTEND_URL')
+
+SOCIAL_AUTH_REDIRECT_URL = FRONTEND_URL
+
+
+def _origin(url):
+    """scheme://host[:port] of a URL, or None if it isn't absolute."""
+    parts = urlparse(url or '')
+    return f'{parts.scheme}://{parts.netloc}' if parts.scheme and parts.netloc else None
+
+
+# Defaults cover the Vite dev server; test/prod override via the env var.
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    origin.strip().rstrip('/')
+    for origin in os.getenv(
+        'CORS_ALLOWED_ORIGINS',
+        'http://localhost:5173,http://127.0.0.1:5173',
+    ).split(',')
+    if origin.strip()
 ]
 
-ROOT_URLCONF = 'backend.urls'
+# FRONTEND_URL is where we send users back after social login, so its origin
+# always has to be allowed. Deriving it here means a deployment only needs to
+# set FRONTEND_URL, not repeat the same host in CORS_ALLOWED_ORIGINS.
+_frontend_origin = _origin(FRONTEND_URL)
+if _frontend_origin and _frontend_origin not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(_frontend_origin)
 
-SOCIAL_AUTH_REDIRECT_URL = os.getenv('FRONTEND_URL')
+ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
     {
@@ -202,7 +223,11 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media Files Setup
+# MEDIA_ROOT must stay a dedicated directory: urls.py serves MEDIA_ROOT under
+# MEDIA_URL in DEBUG, so pointing it at BASE_DIR would expose the whole backend
+# tree (.env included) at /media/.
 MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Logging: make the `api` logger emit INFO to the console so we can see
 # the full social-auth provider payload (see api/signals.py).
@@ -229,6 +254,3 @@ LOGGING = {
         },
     },
 }
-
-
-MEDIA_ROOT = BASE_DIR

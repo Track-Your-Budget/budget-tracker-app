@@ -1,5 +1,3 @@
-'use client'
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CATEGORIES, CATEGORY_COLORS, type Transaction } from '@/lib/types'
 import { cn } from '@/lib/utils'

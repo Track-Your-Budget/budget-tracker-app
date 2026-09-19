@@ -1,24 +1,25 @@
-from rest_framework.decorators import api_view
-from django.contrib.auth.models import User
-from django.db.models import Sum
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.conf import settings
-from datetime import date
-from .models import Transaction
-from .serializers import TransactionSerializer
 import logging
-import os
+from datetime import date
+from decimal import Decimal
+
+from django.conf import settings
+from django.db.models import Q, Sum
+from rest_framework import status
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
 from allauth.socialaccount.providers.microsoft.views import MicrosoftGraphOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client, OAuth2Error
 from dj_rest_auth.registration.views import SocialLoginView
-from rest_framework.permissions import IsAuthenticated
-from .serializers import UserSerializer
-from django.conf import settings
+
+from .models import Transaction
+from .serializers import (
+    MonthlySummarySerializer,
+    TransactionSerializer,
+    UserSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,30 +43,56 @@ class LoggingOAuth2Client(OAuth2Client):
 GERMAN_MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
                  'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 
+# How many months back the dashboard chart shows, current month included.
+SUMMARY_MONTHS = 3
+
+ZERO = Decimal('0.00')
+
+
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
     callback_url = settings.SOCIAL_AUTH_REDIRECT_URL
     client_class = OAuth2Client
+
 
 class GitHubLogin(SocialLoginView):
     adapter_class = GitHubOAuth2Adapter
     callback_url = settings.SOCIAL_AUTH_REDIRECT_URL
     client_class = OAuth2Client
 
+
 class MicrosoftLogin(SocialLoginView):
     adapter_class = MicrosoftGraphOAuth2Adapter
     callback_url = settings.SOCIAL_AUTH_REDIRECT_URL
     client_class = LoggingOAuth2Client
 
+
+class HealthView(APIView):
+    """Liveness/readiness target for Kubernetes.
+
+    Unauthenticated on purpose — the probe has no credentials. It only reports
+    that the app booted and can answer; it deliberately does not touch the DB,
+    so a database blip restarts nothing.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        return Response({'status': 'ok'}, status=status.HTTP_200_OK)
+
+
 class UserMe(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        serializer = UserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
 
 
 class TransactionView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         transactions = request.user.transactions.all()
         serializer = TransactionSerializer(transactions, many=True)
@@ -80,6 +107,8 @@ class TransactionView(APIView):
 
 
 class TransactionDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get_object(self, request, pk):
         try:
             return request.user.transactions.get(pk=pk)
@@ -105,26 +134,33 @@ class TransactionDetailView(APIView):
 
 
 class MonthlySummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         today = date.today()
         result = []
 
-        for i in range(2, -1, -1):
-            month = today.month - i
-            year = today.year
-            while month <= 0:
-                month += 12
-                year -= 1
+        for offset in range(SUMMARY_MONTHS - 1, -1, -1):
+            # Counting in absolute months and splitting back out with divmod
+            # handles the year rollover directly, without a borrow loop.
+            year, month_index = divmod(today.year * 12 + today.month - 1 - offset, 12)
+            month = month_index + 1
 
-            qs = request.user.transactions.filter(date__year=year, date__month=month)
-            income = qs.filter(type='income').aggregate(total=Sum('amount'))['total'] or 0
-            expense = qs.filter(type='expense').aggregate(total=Sum('amount'))['total'] or 0
+            # One conditional aggregate instead of two filtered queries per month.
+            totals = request.user.transactions.filter(
+                date__year=year, date__month=month
+            ).aggregate(
+                income=Sum('amount', filter=Q(type=Transaction.TransactionType.INCOME)),
+                expense=Sum('amount', filter=Q(type=Transaction.TransactionType.EXPENSE)),
+            )
 
             result.append({
-                'month': GERMAN_MONTHS[month - 1],
-                'income': float(income),
-                'expense': float(expense),
+                'month': GERMAN_MONTHS[month_index],
+                # Stays Decimal; the serializer decides the representation.
+                'income': totals['income'] or ZERO,
+                'expense': totals['expense'] or ZERO,
             })
 
-        return Response(result, status=status.HTTP_200_OK)
+        serializer = MonthlySummarySerializer(result, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 

@@ -1,5 +1,3 @@
-'use client'
-
 import { Card, CardContent } from '@/components/ui/card'
 import { Wallet, TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'

@@ -1,12 +1,14 @@
-'use client'
-
 // Inspired by react-hot-toast library
 import * as React from 'react'
 
 import type { ToastActionElement, ToastProps } from '@/components/ui/toast'
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+// Grace period between a toast being dismissed (open: false, exit animation
+// runs) and it being dropped from state. Not the visible duration - that is
+// Radix's ToastProvider `duration`. The shadcn default here is 1000000ms,
+// which pins every dismissed toast in memory for ~16 minutes.
+const TOAST_REMOVE_DELAY = 1000
 
 type ToasterToast = ToastProps & {
   id: string

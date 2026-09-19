@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import BudgetDashboard from './Dashboard'
 import Login from './Login'
 import Profile from './Profile'
+import Settings from './Settings'
 import apiClient, {
   refreshAccessToken,
   setAccessToken,
@@ -13,6 +14,7 @@ import { loginWithSocialProvider } from '@/lib/auth/api'
 import type { SocialProvider } from '@/lib/auth/types'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
+import { Navbar } from '@/components/layout/Navbar'
 
 interface CurrentUser {
   first_name?: string
@@ -119,37 +121,42 @@ function App() {
           ? 'Microsoft'
           : 'Google'
 
-    if (capturedOAuth.error || !provider || !capturedOAuth.credential) {
-      setAuthPending(false)
-      toast({
-        title: `${providerLabel} login failed`,
-        description: capturedOAuth.error ?? 'Missing authorization response.',
-        variant: 'destructive',
-      })
-      return
-    }
+    // Wrapped in an async IIFE so every setState runs off the effect body
+    // (satisfies react-hooks/set-state-in-effect).
+    const exchange = async () => {
+      if (capturedOAuth.error || !provider || !capturedOAuth.credential) {
+        toast({
+          title: `${providerLabel} login failed`,
+          description: capturedOAuth.error ?? 'Missing authorization response.',
+          variant: 'destructive',
+        })
+        return
+      }
 
-    loginWithSocialProvider(provider, capturedOAuth.credential)
-      .then(({ accessToken }) => {
+      try {
+        const { accessToken } = await loginWithSocialProvider(
+          provider,
+          capturedOAuth.credential,
+        )
         applyAccessToken(accessToken)
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error(`${providerLabel} login failed:`, err)
         toast({
           title: `${providerLabel} login failed`,
           description: err instanceof Error ? err.message : String(err),
           variant: 'destructive',
         })
-      })
-      .finally(() => setAuthPending(false))
+      }
+    }
+
+    exchange().finally(() => setAuthPending(false))
   }, [applyAccessToken, toast])
 
-  // Load the current user's display name once we have a session
+  // Load the current user's display name once we have a session.
+  // No cleanup setState needed: userName is reset wherever authToken is cleared
+  // (handleLogout + unauthorized handler), and its initial value is undefined.
   useEffect(() => {
-    if (!authToken) {
-      setUserName(undefined)
-      return
-    }
+    if (!authToken) return
     let cancelled = false
     apiClient
       .get<CurrentUser>('/users/me/')
@@ -190,27 +197,40 @@ function App() {
   return (
     <>
       <Router>
-        <Routes>
-          <Route
-            path="/login"
-            element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+        <div className="min-h-screen bg-background flex flex-col">
+          <Navbar
+            isAuthenticated={isAuthenticated}
+            userName={userName}
+            onLogout={handleLogout}
           />
-          <Route
-            path="/"
-            element={
-              isAuthenticated ? (
-                <BudgetDashboard onLogout={handleLogout} userName={userName} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route
-            path="/profile"
-            element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />}
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          <main className="flex-1 flex flex-col">
+            <Routes>
+              <Route
+                path="/login"
+                element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+              />
+              <Route
+                path="/"
+                element={
+                  isAuthenticated ? (
+                    <BudgetDashboard />
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                }
+              />
+              <Route
+                path="/profile"
+                element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />}
+              />
+              <Route
+                path="/settings"
+                element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />}
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
       </Router>
       <Toaster />
     </>

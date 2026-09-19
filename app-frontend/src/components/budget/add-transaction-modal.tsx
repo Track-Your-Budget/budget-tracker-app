@@ -1,6 +1,5 @@
-'use client'
-
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import {
   Dialog,
   DialogContent,
@@ -12,7 +11,14 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import {
   Select,
   SelectContent,
@@ -23,48 +29,47 @@ import {
 import { Plus } from 'lucide-react'
 import { CATEGORIES, type Transaction } from '@/lib/types'
 import { Textarea } from '@/components/ui/textarea'
+import { todayIso, type TransactionFormValues } from '@/lib/transaction-form'
 
 interface AddTransactionModalProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void
 }
 
+const emptyTransaction = (): TransactionFormValues => ({
+  type: 'expense',
+  title: '',
+  amount: '',
+  category: '',
+  date: todayIso(),
+  notes: '',
+})
+
 export function AddTransactionModal({ onAddTransaction }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false)
-  const [title, setTitle] = useState('')
-  const [notes, setNotes] = useState('')
-  const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
-  const [type, setType] = useState<'income' | 'expense'>('expense')
+  const form = useForm<TransactionFormValues>({ defaultValues: emptyTransaction() })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!title || !amount || !category || !date) return
-
+  const handleSubmit = (values: TransactionFormValues) => {
     onAddTransaction({
-      title,
-      notes,
-      amount: parseFloat(amount),
-      category,
-      date,
-      type,
+      title: values.title.trim(),
+      notes: values.notes,
+      amount: Number.parseFloat(values.amount),
+      category: values.category,
+      date: values.date,
+      type: values.type,
     })
-
-    // Reset form
-    setTitle('')
-    setNotes('')
-    setAmount('')
-    setCategory('')
-    setDate(new Date().toISOString().split('T')[0])
-    setType('expense')
+    form.reset(emptyTransaction())
     setOpen(false)
   }
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next) form.reset(emptyTransaction())
+    setOpen(next)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button className="gap-2 px-3 py-2" >
+        <Button className="gap-2 px-3 py-2">
           <Plus className="h-4 w-4" />
           Transaktion hinzufügen
         </Button>
@@ -76,83 +81,140 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
             Fügen Sie eine neue Transaktion zu Ihrem Budget hinzu.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="type">Art</Label>
-              <Select value={type} onValueChange={(v) => setType(v as 'income' | 'expense')}>
-                <SelectTrigger id="type" className="w-full">
-                  <SelectValue placeholder="Art auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="income">Einnahme</SelectItem>
-                  <SelectItem value="expense">Ausgabe</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="title">Titel</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="z.B. Gehalt, Einkauf..."
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} noValidate>
+            <div className="grid gap-4 py-4">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Art</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Art auswählen" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="income">Einnahme</SelectItem>
+                        <SelectItem value="expense">Ausgabe</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="title"
+                rules={{
+                  validate: (value) =>
+                    value.trim().length > 0 || 'Bitte geben Sie einen Titel ein.',
+                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Titel</FormLabel>
+                    <FormControl>
+                      <Input placeholder="z.B. Gehalt, Einkauf..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="amount"
+                rules={{
+                  required: 'Bitte geben Sie einen Betrag ein.',
+                  validate: (value) =>
+                    Number.parseFloat(value) > 0 ||
+                    'Der Betrag muss größer als 0 sein.',
+                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Betrag (€)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="category"
+                rules={{ required: 'Bitte wählen Sie eine Kategorie.' }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Kategorie</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Kategorie auswählen" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CATEGORIES.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="date"
+                rules={{ required: 'Bitte wählen Sie ein Datum.' }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Datum</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Notizen{' '}
+                      <span className="text-muted-foreground text-xs">(optional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Zusätzliche Informationen..."
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="amount">Betrag (€)</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="category">Kategorie</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger id="category" className="w-full">
-                  <SelectValue placeholder="Kategorie auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="date">Datum</Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Notizen <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Zusätzliche Informationen..."
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter className="grid grid-cols-2 gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Abbrechen
-            </Button>
-            <Button type="submit">Speichern</Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter className="grid grid-cols-2 gap-2">
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+                Abbrechen
+              </Button>
+              <Button type="submit">Speichern</Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )
