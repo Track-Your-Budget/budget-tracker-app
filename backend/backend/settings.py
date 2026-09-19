@@ -121,6 +121,12 @@ SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
 SOCIALACCOUNT_EMAIL_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = False
 
+# This is an API-only backend (dj_rest_auth) - allauth.urls is never included,
+# so its default "complete your signup" redirect target doesn't exist. Without
+# this, a first-time social login raises NoReverseMatch on 'socialaccount_signup'
+# instead of creating the account.
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
 
 FRONTEND_URL = os.getenv('FRONTEND_URL')
 
