@@ -18,9 +18,12 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY docker-entrypoint.sh /docker-entrypoint.d/40-write-env.sh
 RUN chmod +x /docker-entrypoint.d/40-write-env.sh
 
-# Proxy /api and /media to the backend service; everything else falls back to
-# index.html for client-side routing. Without the /media rule, avatar requests
-# would hit the SPA fallback and return HTML where the browser expects a PNG.
+# Proxy /api, /media, /admin and /static to the backend service; everything
+# else falls back to index.html for client-side routing. Without the /media
+# rule, avatar requests would hit the SPA fallback and return HTML where the
+# browser expects a PNG. /admin and /static (Django admin's own CSS/JS,
+# collected at backend image build time) are needed for the Django admin
+# panel to be reachable and styled through this proxy at all.
 RUN printf 'server {\n\
     listen 80;\n\
     root /usr/share/nginx/html;\n\
@@ -32,6 +35,18 @@ RUN printf 'server {\n\
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n\
     }\n\
     location /media/ {\n\
+        proxy_pass http://backend:8000;\n\
+        proxy_set_header Host $host;\n\
+        proxy_set_header X-Real-IP $remote_addr;\n\
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n\
+    }\n\
+    location /admin/ {\n\
+        proxy_pass http://backend:8000;\n\
+        proxy_set_header Host $host;\n\
+        proxy_set_header X-Real-IP $remote_addr;\n\
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n\
+    }\n\
+    location /static/ {\n\
         proxy_pass http://backend:8000;\n\
         proxy_set_header Host $host;\n\
         proxy_set_header X-Real-IP $remote_addr;\n\

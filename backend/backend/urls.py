@@ -30,4 +30,10 @@ urlpatterns = [
     # Small files, few requests - if that ever changes, put a real web server
     # in front of MEDIA_ROOT instead of serving them through Django.
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+
+    # Same reasoning as /media/ above: django.contrib.staticfiles only serves
+    # STATIC_ROOT when DEBUG=True. Without this, the Django admin panel loads
+    # with no CSS/JS in every environment where DEBUG=False. collectstatic
+    # already populates STATIC_ROOT at image build time (see Dockerfile).
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
 ]
