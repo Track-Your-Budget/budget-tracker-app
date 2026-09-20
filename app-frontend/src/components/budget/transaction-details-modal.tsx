@@ -110,9 +110,7 @@ function TransactionDetailsForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>
-          {isEditing ? 'Transaktion bearbeiten' : 'Transaktionsdetails'}
-        </DialogTitle>
+        <DialogTitle>{isEditing ? 'Transaktion bearbeiten' : 'Transaktionsdetails'}</DialogTitle>
         <DialogDescription>
           {isEditing
             ? 'Aktualisieren Sie die Angaben dieser Transaktion.'
@@ -128,11 +126,7 @@ function TransactionDetailsForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Art</FormLabel>
-                  <Select
-                    disabled={!isEditing}
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
+                  <Select disabled={!isEditing} value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -151,8 +145,7 @@ function TransactionDetailsForm({
               control={form.control}
               name="title"
               rules={{
-                validate: (value) =>
-                  value.trim().length > 0 || 'Bitte geben Sie einen Titel ein.',
+                validate: (value) => value.trim().length > 0 || 'Bitte geben Sie einen Titel ein.',
               }}
               render={({ field }) => (
                 <FormItem>
@@ -171,11 +164,7 @@ function TransactionDetailsForm({
                 <FormItem>
                   <FormLabel>Beschreibung</FormLabel>
                   <FormControl>
-                    <Textarea
-                      disabled={!isEditing}
-                      placeholder="Keine Beschreibung"
-                      {...field}
-                    />
+                    <Textarea disabled={!isEditing} placeholder="Keine Beschreibung" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -193,13 +182,7 @@ function TransactionDetailsForm({
                 <FormItem>
                   <FormLabel>Betrag (€)</FormLabel>
                   <FormControl>
-                    <Input
-                      disabled={!isEditing}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      {...field}
-                    />
+                    <Input disabled={!isEditing} type="number" min="0" step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -212,11 +195,7 @@ function TransactionDetailsForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Kategorie</FormLabel>
-                  <Select
-                    disabled={!isEditing}
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
+                  <Select disabled={!isEditing} value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger className="w-full">
                         <SelectValue />

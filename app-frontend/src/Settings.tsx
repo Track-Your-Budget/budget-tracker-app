@@ -1,10 +1,5 @@
 import { BellRing, CalendarClock, Heart } from 'lucide-react'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SettingsHeader } from '@/components/settings/settings-header'
 import { FavoritesTab } from '@/components/settings/favorites-tab'
 import { ThresholdsTab } from '@/components/settings/thresholds-tab'

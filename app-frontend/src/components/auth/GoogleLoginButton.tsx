@@ -1,11 +1,12 @@
 import { Button } from '@/components/ui/button'
 import { runtimeEnv } from '@/lib/runtime-env'
+import { OAUTH_PROVIDER_STORAGE_KEY } from '@/lib/auth/oauth-callback'
 
 /**
  * Redirects the browser to Google's OAuth 2.0 authorization endpoint.
  * The full URL (including client_id, redirect_uri, scopes, response_type=code)
  * is supplied via runtimeEnv.GOOGLE_LINK. Google returns to `redirect_uri` with
- * `?code=...` in the query string; App.tsx reads the provider marker from
+ * `?code=...` in the query string; oauth-callback.ts reads the provider marker from
  * sessionStorage to know it must exchange this code at the Google backend
  * endpoint, and forwards the code for a server-side exchange.
  */
@@ -17,17 +18,12 @@ export function GoogleLoginButton() {
   }
 
   const loginWithGoogle = () => {
-    sessionStorage.setItem('oauth_provider', 'google')
+    sessionStorage.setItem(OAUTH_PROVIDER_STORAGE_KEY, 'google')
     window.location.href = googleAuthUrl
   }
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      className="w-full"
-      onClick={loginWithGoogle}
-    >
+    <Button type="button" variant="outline" className="w-full" onClick={loginWithGoogle}>
       <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4">
         <path
           fill="#EA4335"
@@ -38,4 +34,3 @@ export function GoogleLoginButton() {
     </Button>
   )
 }
-

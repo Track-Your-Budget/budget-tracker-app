@@ -65,9 +65,7 @@ export async function refreshAccessToken(): Promise<string> {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as
-      | (AxiosRequestConfig & { _retry?: boolean })
-      | undefined
+    const originalRequest = error.config as (AxiosRequestConfig & { _retry?: boolean }) | undefined
 
     if (!originalRequest || error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error)

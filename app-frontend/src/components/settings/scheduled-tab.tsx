@@ -1,13 +1,7 @@
 import { useState } from 'react'
 import { CalendarClock, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 
@@ -22,9 +16,33 @@ interface ScheduledEntry {
 }
 
 const initialScheduled: ScheduledEntry[] = [
-  { id: '1', title: 'Miete', category: 'Wohnen', amount: '1.200,00 €', cadence: 'Monatlich', next: '01.06.2026', active: true },
-  { id: '2', title: 'Netflix', category: 'Unterhaltung', amount: '17,99 €', cadence: 'Monatlich', next: '08.06.2026', active: true },
-  { id: '3', title: 'Versicherung', category: 'Versicherung', amount: '320,00 €', cadence: 'Vierteljährlich', next: '15.07.2026', active: false },
+  {
+    id: '1',
+    title: 'Miete',
+    category: 'Wohnen',
+    amount: '1.200,00 €',
+    cadence: 'Monatlich',
+    next: '01.06.2026',
+    active: true,
+  },
+  {
+    id: '2',
+    title: 'Netflix',
+    category: 'Unterhaltung',
+    amount: '17,99 €',
+    cadence: 'Monatlich',
+    next: '08.06.2026',
+    active: true,
+  },
+  {
+    id: '3',
+    title: 'Versicherung',
+    category: 'Versicherung',
+    amount: '320,00 €',
+    cadence: 'Vierteljährlich',
+    next: '15.07.2026',
+    active: false,
+  },
 ]
 
 export function ScheduledTab() {
@@ -63,9 +81,7 @@ export function ScheduledTab() {
                   checked={item.active}
                   onCheckedChange={(active) =>
                     setScheduled((current) =>
-                      current.map((entry) =>
-                        entry.id === item.id ? { ...entry, active } : entry,
-                      ),
+                      current.map((entry) => (entry.id === item.id ? { ...entry, active } : entry)),
                     )
                   }
                   aria-label={`${item.title} aktivieren`}
@@ -75,9 +91,7 @@ export function ScheduledTab() {
                   size="icon"
                   aria-label={`${item.title} löschen`}
                   onClick={() =>
-                    setScheduled((current) =>
-                      current.filter((entry) => entry.id !== item.id),
-                    )
+                    setScheduled((current) => current.filter((entry) => entry.id !== item.id))
                   }
                 >
                   <Trash2 className="size-4 text-muted-foreground" />

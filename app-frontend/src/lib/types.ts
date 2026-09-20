@@ -43,3 +43,11 @@ export const CATEGORY_COLORS: Record<string, string> = {
   versicherung: 'bg-chart-1',
   sonstiges: 'bg-muted-foreground',
 }
+
+// Shape of a DRF limit/offset page, returned by GET /transactions/?limit=…
+export interface PaginatedResponse<T> {
+  count: number
+  next: string | null
+  previous: string | null
+  results: T[]
+}

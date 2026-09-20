@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CATEGORIES, CATEGORY_COLORS, type Transaction } from '@/lib/types'
+import { CATEGORY_COLORS, type Transaction } from '@/lib/types'
+import { formatCurrency, getCategoryLabel } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 interface CategoryBreakdownProps {
@@ -8,17 +9,6 @@ interface CategoryBreakdownProps {
 }
 
 export function CategoryBreakdown({ transactions, isLoading }: CategoryBreakdownProps) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(amount)
-  }
-
-  const getCategoryLabel = (categoryValue: string) => {
-    return CATEGORIES.find((c) => c.value === categoryValue)?.label || categoryValue
-  }
-
   // Calculate expenses by category
   const expensesByCategory = transactions
     .filter((t) => t.type === 'expense')
@@ -27,7 +17,7 @@ export function CategoryBreakdown({ transactions, isLoading }: CategoryBreakdown
         acc[t.category] = (acc[t.category] || 0) + t.amount
         return acc
       },
-      {} as Record<string, number>
+      {} as Record<string, number>,
     )
 
   const totalExpenses = Object.values(expensesByCategory).reduce((a, b) => a + b, 0)
@@ -66,9 +56,7 @@ export function CategoryBreakdown({ transactions, isLoading }: CategoryBreakdown
       </CardHeader>
       <CardContent>
         {sortedCategories.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
-            Noch keine Ausgaben vorhanden
-          </p>
+          <p className="text-center text-muted-foreground py-8">Noch keine Ausgaben vorhanden</p>
         ) : (
           <div className="space-y-4">
             {sortedCategories.map(([category, amount]) => {
@@ -80,7 +68,7 @@ export function CategoryBreakdown({ transactions, isLoading }: CategoryBreakdown
                       <span
                         className={cn(
                           'inline-block h-3 w-3 rounded-full',
-                          CATEGORY_COLORS[category] || 'bg-muted-foreground'
+                          CATEGORY_COLORS[category] || 'bg-muted-foreground',
                         )}
                       />
                       <span>{getCategoryLabel(category)}</span>
@@ -91,7 +79,7 @@ export function CategoryBreakdown({ transactions, isLoading }: CategoryBreakdown
                     <div
                       className={cn(
                         'h-2 rounded-full transition-all',
-                        CATEGORY_COLORS[category] || 'bg-muted-foreground'
+                        CATEGORY_COLORS[category] || 'bg-muted-foreground',
                       )}
                       style={{ width: `${percentage}%` }}
                     />

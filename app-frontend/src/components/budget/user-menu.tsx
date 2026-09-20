@@ -29,11 +29,19 @@ export function UserMenu({ onLogout, userName }: { onLogout: () => void; userNam
             <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuItem variant="outline" className="cursor-pointer" onClick={() => navigate('/profile')}>
+        <DropdownMenuItem
+          variant="outline"
+          className="cursor-pointer"
+          onClick={() => navigate('/profile')}
+        >
           <User className="mr-2 h-4 w-4" />
           Profil
         </DropdownMenuItem>
-        <DropdownMenuItem variant="outline" className="cursor-pointer" onClick={() => navigate('/settings')}>
+        <DropdownMenuItem
+          variant="outline"
+          className="cursor-pointer"
+          onClick={() => navigate('/settings')}
+        >
           <Settings className="mr-2 h-4 w-4" />
           Einstellungen
         </DropdownMenuItem>

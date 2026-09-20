@@ -1,154 +1,143 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useToast } from '@/hooks/use-toast'
-import apiClient from '@/lib/apiClient'
+import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { OverviewCards } from '@/components/budget/overview-cards'
 import { AddTransactionModal } from '@/components/budget/add-transaction-modal'
 import { TransactionList } from '@/components/budget/transaction-list'
 import { TransactionDetailsModal } from '@/components/budget/transaction-details-modal'
 import { ExpenseChart } from '@/components/budget/expense-chart'
 import { CategoryBreakdown } from '@/components/budget/category-breakdown'
-import type { Transaction, MonthlyData } from '@/lib/types'
+import { useTransactionDetails } from '@/hooks/use-transaction-details'
+import { useTransactionMutations } from '@/hooks/use-transaction-mutations'
+import {
+  fetchMonthlySummary,
+  fetchMonthTransactions,
+  fetchRecentTransactions,
+} from '@/lib/api/transactions'
+import { formatMonthYear } from '@/lib/format'
+import type { MonthlyData, Transaction } from '@/lib/types'
+import { monthBounds } from '@/lib/utils'
 
+/** Rows shown in the "Letzte Transaktionen" card. */
+const RECENT_COUNT = 8
 
-//  API call 
-async function fetchTransactions(): Promise<Transaction[]> {
-  const response = await apiClient.get<Transaction[]>('/transactions/')
-  return response.data
+/** Whether an API date ("YYYY-MM-DD") falls into the month the dashboard shows. */
+function isInCurrentMonth(date: string): boolean {
+  const { from, to } = monthBounds(new Date())
+  return date >= from && date <= to
 }
 
-async function fetchMonthlyData(): Promise<MonthlyData[]> {
-  const response = await apiClient.get<MonthlyData[]>('/monthly-summary/')
-  return response.data
+function sumByType(transactions: Transaction[]) {
+  return transactions.reduce(
+    (acc, t) => {
+      if (t.type === 'income') acc.income += Number(t.amount)
+      else acc.expenses += Number(t.amount)
+      return acc
+    },
+    { income: 0, expenses: 0 },
+  )
 }
 
 export default function BudgetDashboard() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  // Current-month rows drive the overview cards and the category breakdown.
+  const [monthTransactions, setMonthTransactions] = useState<Transaction[]>([])
+  // The newest RECENT_COUNT rows across all months drive the list card. It is
+  // deliberately not month-scoped so the 1st of a month is not an empty card.
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
-  const { toast } = useToast()
+  const {
+    selected: selectedTransaction,
+    setSelected: setSelectedTransaction,
+    isOpen: isDetailsOpen,
+    setIsOpen: setIsDetailsOpen,
+    open: openDetails,
+  } = useTransactionDetails()
 
-  // Fetch data on mount
   useEffect(() => {
-    const loadData = async () => {
+    let cancelled = false
+    const load = async () => {
       setIsLoading(true)
       try {
-        const [transactionsData, monthlyDataResult] = await Promise.all([
-          fetchTransactions(),
-          fetchMonthlyData(),
+        const [month, recent, summary] = await Promise.all([
+          fetchMonthTransactions(new Date()),
+          fetchRecentTransactions(RECENT_COUNT),
+          fetchMonthlySummary(),
         ])
-        setTransactions(transactionsData)
-        setMonthlyData(monthlyDataResult)
+        if (cancelled) return
+        setMonthTransactions(month)
+        setRecentTransactions(recent)
+        setMonthlyData(summary)
       } catch (error) {
-        console.error('Failed to load data:', error)
+        console.error('Failed to load dashboard:', error)
       } finally {
-        setIsLoading(false)
+        if (!cancelled) setIsLoading(false)
       }
     }
-
-    loadData()
+    load()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  // Calculate totals from current month's transactions only
-  const now = new Date()
-  const currentMonthTransactions = transactions.filter((t) => {
-    const d = new Date(t.date)
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+  // After a successful write, re-read the recent list from the server. That
+  // keeps it at exactly RECENT_COUNT rows in server order without
+  // re-implementing "which row moved up from position 9" here.
+  const reloadRecent = useCallback(async () => {
+    try {
+      setRecentTransactions(await fetchRecentTransactions(RECENT_COUNT))
+    } catch (error) {
+      console.error('Failed to refresh recent transactions:', error)
+    }
+  }, [])
+
+  const mutations = useTransactionMutations({
+    onCreated: useCallback(
+      (saved: Transaction) => {
+        // Saved regardless, but only this month's rows belong in the totals.
+        if (isInCurrentMonth(saved.date)) setMonthTransactions((prev) => [saved, ...prev])
+        void reloadRecent()
+      },
+      [reloadRecent],
+    ),
+    onUpdated: useCallback(
+      (saved: Transaction) => {
+        // An edit can move a row into or out of the current month.
+        setMonthTransactions((prev) => {
+          const others = prev.filter((t) => t.id !== saved.id)
+          return isInCurrentMonth(saved.date) ? [saved, ...others] : others
+        })
+        setRecentTransactions((prev) => prev.map((t) => (t.id === saved.id ? saved : t)))
+        setSelectedTransaction(saved)
+        void reloadRecent()
+      },
+      [reloadRecent, setSelectedTransaction],
+    ),
+    onDeleted: useCallback(
+      (id: string) => {
+        setMonthTransactions((prev) => prev.filter((t) => t.id !== id))
+        // Drop it immediately, then let the refetch pull the next row up.
+        setRecentTransactions((prev) => prev.filter((t) => t.id !== id))
+        void reloadRecent()
+      },
+      [reloadRecent],
+    ),
   })
 
-  const totals = currentMonthTransactions.reduce(
-    (acc, t) => {
-      const amount = Number(t.amount)
-      if (t.type === 'income') {
-        acc.income += amount
-      } else {
-        acc.expenses += amount
-      }
-      return acc
-    },
-    { income: 0, expenses: 0 }
-  )
-
+  const now = new Date()
+  const totals = sumByType(monthTransactions)
   const balance = totals.income - totals.expenses
-
-  const handleAddTransaction = useCallback(async (newTransaction: Omit<Transaction, 'id'>) => {
-    try {
-      const response = await apiClient.post<Transaction>('/transactions/', newTransaction)
-      setTransactions((prev) => [response.data, ...prev])
-      toast({
-        title: 'Erfolg',
-        description: 'Transaktion wurde erfolgreich hinzugefügt.',
-      })
-    } catch (error) {
-      console.error('Error creating transaction:', error)
-      toast({
-        title: 'Fehler',
-        description: 'Transaktion konnte nicht gespeichert werden.',
-        variant: 'destructive',
-      })
-    }
-  }, [toast])
-
-  const handleDeleteTransaction = useCallback(async (id: string) => {
-    try {
-      await apiClient.delete(`/transactions/${id}/`)
-      setTransactions((prev) => prev.filter((t) => t.id !== id))
-      toast({
-        title: 'Erfolg',
-        description: 'Transaktion wurde gelöscht.',
-      })
-    } catch (error) {
-      console.error('Error deleting transaction:', error)
-      toast({
-        title: 'Fehler',
-        description: 'Transaktion konnte nicht gelöscht werden.',
-        variant: 'destructive',
-      })
-    }
-  }, [toast])
-
-  const handleUpdateTransaction = useCallback(async (updated: Transaction) => {
-    try {
-      const response = await apiClient.put<Transaction>(`/transactions/${updated.id}/`, updated)
-      setTransactions((prev) => prev.map((t) => (t.id === updated.id ? response.data : t)))
-      setSelectedTransaction(response.data)
-      toast({
-        title: 'Erfolg',
-        description: 'Transaktion wurde aktualisiert.',
-      })
-    } catch (error) {
-      console.error('Error updating transaction:', error)
-      toast({
-        title: 'Fehler',
-        description: 'Transaktion konnte nicht aktualisiert werden.',
-        variant: 'destructive',
-      })
-    }
-  }, [toast])
-
-  const handleSelectTransaction = useCallback((transaction: Transaction) => {
-    setSelectedTransaction(transaction)
-    setIsDetailsOpen(true)
-  }, [])
-
-  // Sort transactions by date (newest first)
-  const sortedTransactions = [...transactions].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  )
 
   return (
     <div className="bg-background">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Overview Cards */}
         <section className="mb-8">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5">
-              <span className=" font-semibold text-primary capitalize">
-                {now.toLocaleString('de-DE', { month: 'long', year: 'numeric' })}
-              </span>
+              <span className="font-semibold text-primary capitalize">{formatMonthYear(now)}</span>
             </div>
-            <AddTransactionModal onAddTransaction={handleAddTransaction} />
+            <AddTransactionModal onAddTransaction={mutations.create} />
           </div>
           <OverviewCards
             balance={balance}
@@ -158,29 +147,33 @@ export default function BudgetDashboard() {
           />
         </section>
 
-        {/* Charts and Transaction List */}
         <div className="grid gap-8 lg:grid-cols-2">
-          {/* Left Column - Charts */}
-          <div>
-            <TransactionList
-              transactions={sortedTransactions.slice(0, 10)}
-              isLoading={isLoading}
-              onSelectTransaction={handleSelectTransaction}
-            />
-          </div>
-           {/* Right Column - Charts */}
+          <TransactionList
+            transactions={recentTransactions}
+            isLoading={isLoading}
+            groupByMonth
+            onSelectTransaction={openDetails}
+            headerAction={
+              <Button asChild variant="secondary" size="sm" className="px-0">
+                <Link to="/transactions">
+                  Alle anzeigen <ArrowRight />
+                </Link>
+              </Button>
+            }
+          />
           <div className="space-y-8">
             <ExpenseChart data={monthlyData} isLoading={isLoading} />
-            <CategoryBreakdown transactions={transactions} isLoading={isLoading} />
+            <CategoryBreakdown transactions={monthTransactions} isLoading={isLoading} />
           </div>
         </div>
       </div>
+
       <TransactionDetailsModal
         transaction={selectedTransaction}
         open={isDetailsOpen}
         onOpenChange={setIsDetailsOpen}
-        onUpdateTransaction={handleUpdateTransaction}
-        onDeleteTransaction={handleDeleteTransaction}
+        onUpdateTransaction={mutations.update}
+        onDeleteTransaction={mutations.remove}
       />
     </div>
   )

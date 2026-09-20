@@ -2,13 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Plus, Trash2, WalletCards } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
   Form,
@@ -30,7 +24,13 @@ interface Template {
 }
 
 const initialTemplates: Template[] = [
-  { id: '1', title: 'Wöchentlicher Einkauf', category: 'Lebensmittel', amount: '85,00 €', type: 'expense' },
+  {
+    id: '1',
+    title: 'Wöchentlicher Einkauf',
+    category: 'Lebensmittel',
+    amount: '85,00 €',
+    type: 'expense',
+  },
   { id: '2', title: 'Monatsmiete', category: 'Wohnen', amount: '1.200,00 €', type: 'expense' },
   { id: '3', title: 'Freelance Zahlung', category: 'Gehalt', amount: '800,00 €', type: 'income' },
 ]
@@ -67,9 +67,7 @@ export function FavoritesTab() {
       <Card>
         <CardHeader>
           <CardTitle>Schnellvorlagen</CardTitle>
-          <CardDescription>
-            Häufige Transaktionen mit einem Klick vorausfüllen.
-          </CardDescription>
+          <CardDescription>Häufige Transaktionen mit einem Klick vorausfüllen.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {templates.map((template) => (
@@ -93,9 +91,7 @@ export function FavoritesTab() {
                 size="icon"
                 aria-label={`${template.title} löschen`}
                 onClick={() =>
-                  setTemplates((current) =>
-                    current.filter((item) => item.id !== template.id),
-                  )
+                  setTemplates((current) => current.filter((item) => item.id !== template.id))
                 }
               >
                 <Trash2 className="size-4 text-muted-foreground" />
@@ -107,9 +103,7 @@ export function FavoritesTab() {
       <Card>
         <CardHeader>
           <CardTitle>Favorit hinzufügen</CardTitle>
-          <CardDescription>
-            Erstellen Sie eine neue Vorlage für Ihre Transaktionen.
-          </CardDescription>
+          <CardDescription>Erstellen Sie eine neue Vorlage für Ihre Transaktionen.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Form {...form}>
@@ -123,8 +117,7 @@ export function FavoritesTab() {
                 name="title"
                 rules={{
                   validate: (value) =>
-                    value.trim().length > 0 ||
-                    'Bitte geben Sie einen Namen für die Vorlage ein.',
+                    value.trim().length > 0 || 'Bitte geben Sie einen Namen für die Vorlage ein.',
                 }}
                 render={({ field }) => (
                   <FormItem>

@@ -9,6 +9,7 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import type { MonthlyData } from '@/lib/types'
+import { formatWholeCurrency } from '@/lib/format'
 
 // Colors come from the theme tokens in index.css, not from literals, so a
 // theme switch reaches the chart like it reaches everything else. Grid, axis
@@ -25,14 +26,6 @@ interface ExpenseChartProps {
 }
 
 export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0,
-    }).format(value)
-  }
-
   if (isLoading) {
     return (
       <Card className="border-border/50">
@@ -60,7 +53,7 @@ export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={formatCurrency}
+              tickFormatter={formatWholeCurrency}
             />
             <ChartTooltip
               content={
@@ -76,7 +69,7 @@ export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
                           {chartConfig[name as keyof typeof chartConfig]?.label ?? name}
                         </span>
                         <span className="text-foreground font-mono font-medium tabular-nums">
-                          {formatCurrency(Number(value))}
+                          {formatWholeCurrency(Number(value))}
                         </span>
                       </div>
                     </>

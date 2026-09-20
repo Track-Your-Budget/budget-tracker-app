@@ -1,13 +1,7 @@
 import { useState } from 'react'
 import { BellRing, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -38,9 +32,7 @@ export function ThresholdsTab() {
   const { toast } = useToast()
 
   const updateThreshold = (id: string, limit: string) => {
-    setThresholds((current) =>
-      current.map((item) => (item.id === id ? { ...item, limit } : item)),
-    )
+    setThresholds((current) => current.map((item) => (item.id === id ? { ...item, limit } : item)))
   }
 
   const saveThresholds = () =>
@@ -66,16 +58,11 @@ export function ThresholdsTab() {
         <CardContent className="flex flex-col gap-5">
           {thresholds.map((threshold) => {
             const progress = Math.min(
-              (parseGermanNumber(threshold.spent) /
-                parseGermanNumber(threshold.limit)) *
-                100,
+              (parseGermanNumber(threshold.spent) / parseGermanNumber(threshold.limit)) * 100,
               100,
             )
             return (
-              <div
-                key={threshold.id}
-                className="flex flex-col gap-3 rounded-xl border p-4"
-              >
+              <div key={threshold.id} className="flex flex-col gap-3 rounded-xl border p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-medium">{threshold.category}</p>
@@ -91,9 +78,7 @@ export function ThresholdsTab() {
                       id={`limit-${threshold.id}`}
                       className="w-28 text-right"
                       value={threshold.limit}
-                      onChange={(event) =>
-                        updateThreshold(threshold.id, event.target.value)
-                      }
+                      onChange={(event) => updateThreshold(threshold.id, event.target.value)}
                     />
                     <span className="text-sm text-muted-foreground">€ / Monat</span>
                   </div>
