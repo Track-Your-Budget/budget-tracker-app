@@ -1,4 +1,4 @@
-import { CATEGORIES } from '@/lib/types'
+import { CATEGORIES, type CurrentUser } from '@/lib/types'
 import { parseLocalDate } from '@/lib/utils'
 
 const LOCALE = 'de-DE'
@@ -41,4 +41,12 @@ export function formatMonthYear(date: Date): string {
 /** `"lebensmittel"` → `"Lebensmittel"`; unknown values pass through unchanged. */
 export function getCategoryLabel(category: string): string {
   return CATEGORIES.find((c) => c.value === category)?.label ?? category
+}
+
+/** "Ada Lovelace", falling back to the username, then to the e-mail. */
+export function formatUserName(
+  user: Pick<CurrentUser, 'first_name' | 'last_name' | 'username' | 'email'>,
+): string {
+  const fullName = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim()
+  return fullName || user.username || user.email || ''
 }

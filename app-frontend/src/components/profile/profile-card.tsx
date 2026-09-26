@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { formatUserName } from '@/lib/format'
 import type { CurrentUser } from '@/lib/types'
 
 interface ProfileCardProps {
@@ -39,11 +40,7 @@ export function ProfileCard({ user, isLoading }: ProfileCardProps) {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <div className="text-xl font-semibold">
-                  {`${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() ||
-                    user.username ||
-                    '—'}
-                </div>
+                <div className="text-xl font-semibold">{formatUserName(user) || '—'}</div>
                 <div className="text-sm text-muted-foreground">ID: {user.id}</div>
               </div>
             </div>
