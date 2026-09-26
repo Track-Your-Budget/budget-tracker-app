@@ -69,8 +69,8 @@ export default function Transactions() {
         if (cancelled) return
         console.error('Failed to load transactions:', error)
         toast({
-          title: 'Laden fehlgeschlagen',
-          description: 'Die Transaktionen konnten nicht geladen werden.',
+          title: 'Loading failed',
+          description: 'The transactions could not be loaded.',
           variant: 'destructive',
         })
       } finally {
@@ -102,8 +102,8 @@ export default function Transactions() {
     } catch (error) {
       console.error('Failed to load more transactions:', error)
       toast({
-        title: 'Laden fehlgeschlagen',
-        description: 'Weitere Transaktionen konnten nicht geladen werden.',
+        title: 'Loading failed',
+        description: 'More transactions could not be loaded.',
         variant: 'destructive',
       })
     } finally {
@@ -139,8 +139,8 @@ export default function Transactions() {
 
   const filtersActive = hasActiveFilters({ ...filters, search: searchInput })
   const listTitle = isLoading
-    ? 'Transaktionen'
-    : `Transaktionen (${transactions.length} von ${totalCount})`
+    ? 'Transactions'
+    : `Transactions (${transactions.length} of ${totalCount})`
 
   return (
     <div className="bg-background">
@@ -163,16 +163,14 @@ export default function Transactions() {
           groupByMonth
           onSelectTransaction={openDetails}
           emptyMessage={
-            filtersActive
-              ? 'Keine Transaktionen für die gewählten Filter gefunden'
-              : 'Noch keine Transaktionen vorhanden'
+            filtersActive ? 'No transactions match the selected filters' : 'No transactions yet'
           }
           footer={
             hasMore ? (
               <div className="mt-6 flex justify-center">
                 <Button variant="outline" onClick={loadMore} disabled={isLoadingMore}>
                   {isLoadingMore ? <Spinner /> : <ChevronDown />}
-                  {`${PAGE_SIZE} weitere laden`}
+                  {`Load ${PAGE_SIZE} more`}
                 </Button>
               </div>
             ) : null

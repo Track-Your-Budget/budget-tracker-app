@@ -17,7 +17,7 @@ export function UserMenu({ onLogout, userName }: { onLogout: () => void; userNam
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="icon" className="rounded-full h-11 w-11">
           <User className="h-8 w-8" />
-          <span className="sr-only">Benutzermenü öffnen</span>
+          <span className="sr-only">Open user menu</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
@@ -35,7 +35,7 @@ export function UserMenu({ onLogout, userName }: { onLogout: () => void; userNam
           onClick={() => navigate('/profile')}
         >
           <User className="mr-2 h-4 w-4" />
-          Profil
+          Profile
         </DropdownMenuItem>
         <DropdownMenuItem
           variant="outline"
@@ -43,12 +43,12 @@ export function UserMenu({ onLogout, userName }: { onLogout: () => void; userNam
           onClick={() => navigate('/settings')}
         >
           <Settings className="mr-2 h-4 w-4" />
-          Einstellungen
+          Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" className="cursor-pointer" onClick={onLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          Abmelden
+          Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -10,10 +10,10 @@ interface TransactionsHeaderProps {
 export function TransactionsHeader({ aside }: TransactionsHeaderProps) {
   return (
     <PageHeader
-      eyebrow="Übersicht"
+      eyebrow="Overview"
       eyebrowIcon={ListOrdered}
-      title="Transaktionen"
-      description="Durchsuchen und filtern Sie alle Ihre Einnahmen und Ausgaben."
+      title="Transactions"
+      description="Browse and filter all your income and expenses."
       aside={aside}
     />
   )

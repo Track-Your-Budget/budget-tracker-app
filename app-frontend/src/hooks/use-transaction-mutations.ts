@@ -34,10 +34,10 @@ export function useTransactionMutations({ onCreated, onUpdated, onDeleted }: Mut
     async (transaction: NewTransaction) => {
       try {
         onCreated?.(await createTransaction(transaction))
-        notify('Gespeichert', 'Die Transaktion wurde hinzugefügt.')
+        notify('Saved', 'The transaction was added.')
       } catch (error) {
         console.error('Error creating transaction:', error)
-        fail('Speichern fehlgeschlagen', 'Die Transaktion konnte nicht gespeichert werden.')
+        fail('Save failed', 'The transaction could not be saved.')
       }
     },
     [onCreated, notify, fail],
@@ -47,10 +47,10 @@ export function useTransactionMutations({ onCreated, onUpdated, onDeleted }: Mut
     async (transaction: Transaction) => {
       try {
         onUpdated?.(await updateTransaction(transaction))
-        notify('Aktualisiert', 'Die Änderungen wurden übernommen.')
+        notify('Updated', 'Your changes were applied.')
       } catch (error) {
         console.error('Error updating transaction:', error)
-        fail('Aktualisieren fehlgeschlagen', 'Die Änderungen konnten nicht gespeichert werden.')
+        fail('Update failed', 'Your changes could not be saved.')
       }
     },
     [onUpdated, notify, fail],
@@ -61,10 +61,10 @@ export function useTransactionMutations({ onCreated, onUpdated, onDeleted }: Mut
       try {
         await deleteTransaction(id)
         onDeleted?.(id)
-        notify('Gelöscht', 'Die Transaktion wurde entfernt.')
+        notify('Deleted', 'The transaction was removed.')
       } catch (error) {
         console.error('Error deleting transaction:', error)
-        fail('Löschen fehlgeschlagen', 'Die Transaktion konnte nicht gelöscht werden.')
+        fail('Delete failed', 'The transaction could not be deleted.')
       }
     },
     [onDeleted, notify, fail],

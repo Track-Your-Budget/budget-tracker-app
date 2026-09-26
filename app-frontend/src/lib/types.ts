@@ -25,13 +25,13 @@ export interface CurrentUser {
 }
 
 export const CATEGORIES = [
-  { value: 'gehalt', label: 'Gehalt' },
-  { value: 'miete', label: 'Miete' },
-  { value: 'lebensmittel', label: 'Lebensmittel' },
+  { value: 'gehalt', label: 'Salary' },
+  { value: 'miete', label: 'Rent' },
+  { value: 'lebensmittel', label: 'Groceries' },
   { value: 'transport', label: 'Transport' },
-  { value: 'unterhaltung', label: 'Unterhaltung' },
-  { value: 'versicherung', label: 'Versicherung' },
-  { value: 'sonstiges', label: 'Sonstiges' },
+  { value: 'unterhaltung', label: 'Entertainment' },
+  { value: 'versicherung', label: 'Insurance' },
+  { value: 'sonstiges', label: 'Miscellaneous' },
 ] as const
 
 export const CATEGORY_COLORS: Record<string, string> = {

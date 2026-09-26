@@ -13,7 +13,7 @@ interface OverviewCardsProps {
 export function OverviewCards({ balance, income, expenses, isLoading }: OverviewCardsProps) {
   const cards = [
     {
-      title: 'Gesamtsaldo',
+      title: 'Balance',
       value: balance,
       icon: Wallet,
       iconBg: 'bg-primary/20',
@@ -21,7 +21,7 @@ export function OverviewCards({ balance, income, expenses, isLoading }: Overview
       valueColor: balance >= 0 ? 'text-primary' : 'text-destructive',
     },
     {
-      title: 'Einnahmen',
+      title: 'Income',
       value: income,
       icon: TrendingUp,
       iconBg: 'bg-primary/20',
@@ -29,7 +29,7 @@ export function OverviewCards({ balance, income, expenses, isLoading }: Overview
       valueColor: 'text-primary',
     },
     {
-      title: 'Ausgaben',
+      title: 'Expenses',
       value: expenses,
       icon: TrendingDown,
       iconBg: 'bg-destructive/20',

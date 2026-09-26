@@ -79,7 +79,7 @@ export function useAuthSession(): AuthSession {
     const providerLabel = provider ? PROVIDER_LABELS[provider] : 'Google'
 
     const showLoginFailed = (description: string) =>
-      toast({ title: 'Anmeldung fehlgeschlagen', description, variant: 'destructive' })
+      toast({ title: 'Sign-in failed', description, variant: 'destructive' })
 
     // Async IIFE so every setState runs off the effect body
     // (satisfies react-hooks/set-state-in-effect).
@@ -89,7 +89,7 @@ export function useAuthSession(): AuthSession {
           `${providerLabel} login failed:`,
           capturedOAuth.error ?? 'Missing authorization response.',
         )
-        showLoginFailed(`Fehler beim Anmeldedienst ${providerLabel}.`)
+        showLoginFailed(`Error signing in with ${providerLabel}.`)
         return
       }
 
@@ -104,9 +104,7 @@ export function useAuthSession(): AuthSession {
           err instanceof SocialLoginError ? err.detail : err,
         )
         showLoginFailed(
-          err instanceof SocialLoginError
-            ? err.message
-            : `Fehler beim Anmeldedienst ${providerLabel}.`,
+          err instanceof SocialLoginError ? err.message : `Error signing in with ${providerLabel}.`,
         )
       }
     }
@@ -131,7 +129,7 @@ export function useAuthSession(): AuthSession {
         console.error('Failed to load current user:', err)
         setUserLoadFailed(true)
         toast({
-          title: 'Profil konnte nicht geladen werden',
+          title: 'Profile could not be loaded',
           description: err instanceof Error ? err.message : String(err),
           variant: 'destructive',
         })

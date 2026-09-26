@@ -8,7 +8,7 @@ export const PROVIDER_LABELS: Record<SocialProvider, string> = {
 }
 
 /**
- * Thrown by loginWithSocialProvider. `message` is short, German and safe to
+ * Thrown by loginWithSocialProvider. `message` is short, user-facing and safe to
  * put in a toast; `detail` carries the HTTP status and raw body for the
  * console so debugging information is not lost.
  */
@@ -32,15 +32,15 @@ interface BackendErrorBody {
 
 function userMessageForStatus(status: number, providerLabel: string): string {
   if (status === 503) {
-    return `Der Anmeldedienst ${providerLabel} ist auf dem Server nicht eingerichtet.`
+    return `${providerLabel} sign-in is not configured on the server.`
   }
   if (status === 400 || status === 401 || status === 403) {
-    return `Die Anmeldung über ${providerLabel} wurde abgelehnt. Bitte versuchen Sie es erneut.`
+    return `Sign-in with ${providerLabel} was rejected. Please try again.`
   }
   if (status >= 500) {
-    return 'Der Server ist momentan nicht erreichbar. Bitte versuchen Sie es später erneut.'
+    return 'The server is currently unavailable. Please try again later.'
   }
-  return `Fehler beim Anmeldedienst ${providerLabel}.`
+  return `Error signing in with ${providerLabel}.`
 }
 
 /**
@@ -77,7 +77,7 @@ export async function loginWithSocialProvider(
     responseText = response.data ?? ''
   } catch (err) {
     throw new SocialLoginError(
-      'Keine Verbindung zum Server. Bitte prüfen Sie Ihre Internetverbindung.',
+      'Could not reach the server. Please check your internet connection.',
       `Network error calling ${url}: ${String(err)}`,
     )
   }
@@ -101,7 +101,7 @@ export async function loginWithSocialProvider(
 
   if (!data?.access) {
     throw new SocialLoginError(
-      `Fehler beim Anmeldedienst ${providerLabel}.`,
+      `Error signing in with ${providerLabel}.`,
       `Login response missing access token. ${detail}`,
     )
   }

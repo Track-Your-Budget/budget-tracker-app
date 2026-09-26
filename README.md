@@ -1,6 +1,6 @@
 # Track Your Budget
 
-A full-stack personal finance tracker: sign in with Google, GitHub or Microsoft, record income and expenses, and see where the current month's money went. The UI is in German.
+A full-stack personal finance tracker: sign in with Google, GitHub or Microsoft, record income and expenses, and see where the current month's money went. The UI is in English, amounts are in EUR.
 
 ---
 
@@ -154,7 +154,7 @@ Provider credentials are **not** environment variables. They are allauth `Social
 2. Pick the provider (Google, GitHub or Microsoft), paste its client ID and secret, and attach the site with `SITE_ID = 1`.
 3. In the provider's console, register `FRONTEND_URL` as the redirect URI.
 
-A login attempt for a provider without a `SocialApp` row returns a JSON `503` and the UI shows "Der Anmeldedienst … ist auf dem Server nicht eingerichtet."
+A login attempt for a provider without a `SocialApp` row returns a JSON `503` and the UI shows "… sign-in is not configured on the server."
 
 ### 3. Frontend
 
@@ -258,13 +258,13 @@ Rows are ordered by date descending, then id descending, so pages never overlap 
 
 | Category value | Label |
 |---|---|
-| `gehalt` | Gehalt (Salary) |
-| `miete` | Miete (Rent) |
-| `lebensmittel` | Lebensmittel (Groceries) |
+| `gehalt` | Salary |
+| `miete` | Rent |
+| `lebensmittel` | Groceries |
 | `transport` | Transport |
-| `unterhaltung` | Unterhaltung (Entertainment) |
-| `versicherung` | Versicherung (Insurance) |
-| `sonstiges` | Sonstiges (Miscellaneous) |
+| `unterhaltung` | Entertainment |
+| `versicherung` | Insurance |
+| `sonstiges` | Miscellaneous |
 
 ---
 

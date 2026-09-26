@@ -5,13 +5,13 @@ import { PageHeader } from '@/components/layout/page-header'
 export function ProfileHeader() {
   return (
     <PageHeader
-      eyebrow="Kontoübersicht"
+      eyebrow="Account overview"
       eyebrowIcon={UserCircle2}
-      title="Profil"
-      description="Sehen Sie Ihre Kontodaten ein und halten Sie diese aktuell."
+      title="Profile"
+      description="View the account details your sign-in provider shared with us."
       aside={
         <Badge variant="secondary" className="w-fit gap-2 px-3 py-1.5">
-          <ShieldCheck className="size-3.5" /> Persönliche Daten
+          <ShieldCheck className="size-3.5" /> Personal data
         </Badge>
       }
     />

@@ -51,14 +51,14 @@ export function ProfileCard({ user, isLoading }: ProfileCardProps) {
               <div className="space-y-1">
                 <dt className="flex items-center gap-2 text-sm text-muted-foreground">
                   <UserIcon className="h-4 w-4" />
-                  Benutzername
+                  Username
                 </dt>
                 <dd className="text-sm font-medium break-all">{user.username || '—'}</dd>
               </div>
               <div className="space-y-1">
                 <dt className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4" />
-                  E-Mail
+                  Email
                 </dt>
                 <dd className="text-sm font-medium break-all">{user.email || '—'}</dd>
               </div>
@@ -69,7 +69,7 @@ export function ProfileCard({ user, isLoading }: ProfileCardProps) {
             </dl>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">Keine Profildaten verfügbar.</p>
+          <p className="text-sm text-muted-foreground">No profile data available.</p>
         )}
       </CardContent>
     </Card>

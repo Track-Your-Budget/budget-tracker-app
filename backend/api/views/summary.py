@@ -12,8 +12,8 @@ from rest_framework.views import APIView
 from ..models import Transaction
 from ..serializers import MonthlySummarySerializer
 
-GERMAN_MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
-                 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
+MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 # How many months back the dashboard chart shows, current month included.
 SUMMARY_MONTHS = 3
@@ -43,7 +43,7 @@ class MonthlySummaryView(APIView):
             )
 
             result.append({
-                'month': GERMAN_MONTHS[month_index],
+                'month': MONTH_ABBR[month_index],
                 # Stays Decimal; the serializer decides the representation.
                 'income': totals['income'] or ZERO,
                 'expense': totals['expense'] or ZERO,

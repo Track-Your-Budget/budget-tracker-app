@@ -9,13 +9,13 @@ export default function NotFound() {
         <SearchX className="h-6 w-6 text-primary" />
       </div>
       <p className="text-sm font-semibold text-primary">404</p>
-      <h2 className="text-2xl font-semibold tracking-tight">Seite nicht gefunden</h2>
+      <h2 className="text-2xl font-semibold tracking-tight">Page not found</h2>
       <p className="max-w-md text-sm text-muted-foreground">
-        Die angeforderte Adresse existiert nicht oder wurde verschoben.
+        The requested address does not exist or has moved.
       </p>
       <Button asChild>
         <Link to="/">
-          <ArrowLeft /> Zum Dashboard
+          <ArrowLeft /> Back to dashboard
         </Link>
       </Button>
     </div>

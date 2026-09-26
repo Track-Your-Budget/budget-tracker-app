@@ -18,7 +18,7 @@ export function Navbar({ isAuthenticated, userName, onLogout }: NavbarProps) {
           </div>
           <div>
             <h1 className="text-lg font-bold text-foreground leading-tight">Budget Tracker</h1>
-            <p className="text-xs text-muted-foreground">Verwalten Sie Ihre Finanzen</p>
+            <p className="text-xs text-muted-foreground">Manage your finances</p>
           </div>
         </Link>
         {isAuthenticated && <UserMenu onLogout={onLogout} userName={userName} />}

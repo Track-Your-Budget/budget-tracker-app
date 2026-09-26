@@ -11,10 +11,9 @@ function RouteErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/20">
         <TriangleAlert className="h-6 w-6 text-destructive" />
       </div>
-      <h2 className="text-xl font-semibold tracking-tight">Da ist etwas schiefgelaufen</h2>
+      <h2 className="text-xl font-semibold tracking-tight">Something went wrong</h2>
       <p className="max-w-md text-sm text-muted-foreground">
-        Die Seite konnte nicht angezeigt werden. Versuchen Sie es erneut oder laden Sie die Seite
-        neu.
+        The page could not be displayed. Try again or reload the page.
       </p>
       {import.meta.env.DEV && (
         <pre className="max-w-full overflow-auto rounded bg-muted px-3 py-2 text-left text-xs">
@@ -22,9 +21,9 @@ function RouteErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
         </pre>
       )}
       <div className="flex gap-2">
-        <Button onClick={resetErrorBoundary}>Erneut versuchen</Button>
+        <Button onClick={resetErrorBoundary}>Try again</Button>
         <Button variant="outline" onClick={() => window.location.reload()}>
-          Seite neu laden
+          Reload page
         </Button>
       </div>
     </div>
