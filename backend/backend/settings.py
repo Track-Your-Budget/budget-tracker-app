@@ -249,8 +249,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Logging: make the `api` logger emit INFO to the console so we can see
-# the full social-auth provider payload (see api/signals.py).
+# Logging: make the `api` logger emit INFO and above to the console, so the
+# OAuth exchange errors (api/views/auth.py) and avatar download failures
+# (api/signals.py) show up in the pod logs.
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
