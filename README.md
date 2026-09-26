@@ -50,23 +50,25 @@ A full-stack personal finance tracker: sign in with Google, GitHub or Microsoft,
 track-your-budget/
 ├── app-frontend/
 │   ├── src/
-│   │   ├── App.tsx                  # Routes + auth guard
-│   │   ├── Dashboard.tsx            # Current-month overview
-│   │   ├── Transactions.tsx         # Paginated, filterable history
-│   │   ├── Profile.tsx / Settings.tsx / Login.tsx
+│   │   ├── app.tsx                  # Routes, auth guard, error boundary, session context
+│   │   ├── pages/
+│   │   │   ├── dashboard.tsx        # Current-month overview
+│   │   │   ├── transactions.tsx     # Paginated, filterable history
+│   │   │   ├── profile.tsx / settings.tsx / login.tsx / not-found.tsx
 │   │   ├── components/
-│   │   │   ├── auth/                # Provider buttons, RequireAuth
+│   │   │   ├── auth/                # Provider buttons, require-auth
 │   │   │   ├── budget/              # Cards, chart, list, filters, modals
-│   │   │   ├── layout/              # Navbar, PageHeader
+│   │   │   ├── layout/              # navbar, page-header, route-error-boundary
 │   │   │   ├── profile/ settings/ transactions/
 │   │   │   └── ui/                  # shadcn components (generated)
 │   │   ├── hooks/
-│   │   │   ├── use-auth-session.ts  # Token bootstrap, OAuth exchange, logout
+│   │   │   ├── use-auth-session.ts  # Token bootstrap, OAuth exchange, current user, logout
+│   │   │   ├── use-session.ts       # Context that shares the one session with every page
 │   │   │   ├── use-transaction-mutations.ts
 │   │   │   └── use-transaction-details.ts
 │   │   └── lib/
-│   │       ├── api/transactions.ts  # All transaction / summary requests
-│   │       ├── apiClient.ts         # Axios instance + refresh interceptor
+│   │       ├── api/                 # Every request: transactions.ts, users.ts
+│   │       ├── api-client.ts        # Axios instance + refresh interceptor
 │   │       ├── auth/                # Social login call, OAuth callback capture
 │   │       ├── format.ts            # Currency, date and category labels
 │   │       ├── transaction-filters.ts
@@ -85,9 +87,9 @@ track-your-budget/
 │   │   │   ├── summary.py           # Monthly totals for the chart
 │   │   │   ├── users.py             # /users/me/
 │   │   │   └── health.py            # Kubernetes probe
+│   │   ├── management/commands/seed.py  # Sample data
 │   │   └── tests.py
-│   ├── backend/settings.py
-│   └── seed_september_transactions.py
+│   └── backend/settings.py
 ├── docker-compose.yml
 └── azure-pipelines.yml
 ```
@@ -177,11 +179,13 @@ The app runs on `http://localhost:5173`. The Vite dev server proxies `/api` to `
 
 ### 4. Sample data (optional)
 
-Edit `USERNAME` in `backend/seed_september_transactions.py`, then:
-
 ```bash
-python manage.py shell < seed_september_transactions.py
+python manage.py seed --user <username>              # last 3 months
+python manage.py seed --user <username> --months 6 --per-month 15
+python manage.py seed --user <username> --clear --seed 42
 ```
+
+Every month gets salary, rent and subscriptions plus a random set of everyday expenses; the current month only up to today. `--seed` makes the data reproducible, `--clear` deletes the user's existing transactions first.
 
 ---
 
@@ -195,6 +199,7 @@ python manage.py shell < seed_september_transactions.py
 | Format / check formatting | `npm run format` / `npm run format:check` |
 | Backend tests | `python manage.py test api` |
 | Backend system check | `python manage.py check` |
+| Sample data | `python manage.py seed --user <username>` |
 
 Prettier is configured in `app-frontend/.prettierrc` (single quotes, no semicolons, 100 columns). The generated `src/components/ui` folder is excluded from formatting.
 
@@ -274,6 +279,7 @@ User clicks "Continue with <Provider>"
   → Backend exchanges the code with the provider using the SocialApp secret
   → Backend returns an access token in the body and sets the httpOnly "jwt-refresh" cookie
   → Access token is kept in memory only; every request sends it as a Bearer header
+  → The session loads /api/users/me/ once and shares it with every page via SessionContext
   → On 401, apiClient refreshes via /api/token/refresh/ once and replays queued requests
   → If the refresh fails, the session is cleared and the router redirects to /login
 ```

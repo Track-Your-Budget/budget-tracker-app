@@ -1,16 +1,20 @@
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom'
-import BudgetDashboard from './Dashboard'
-import Login from './Login'
-import Profile from './Profile'
-import Settings from './Settings'
-import Transactions from './Transactions'
-import { RequireAuth } from '@/components/auth/RequireAuth'
-import { Navbar } from '@/components/layout/Navbar'
+import { RequireAuth } from '@/components/auth/require-auth'
+import { Navbar } from '@/components/layout/navbar'
+import { RouteErrorBoundary } from '@/components/layout/route-error-boundary'
 import { Toaster } from '@/components/ui/toaster'
 import { useAuthSession } from '@/hooks/use-auth-session'
+import { SessionContext } from '@/hooks/use-session'
+import BudgetDashboard from '@/pages/dashboard'
+import Login from '@/pages/login'
+import NotFound from '@/pages/not-found'
+import Profile from '@/pages/profile'
+import Settings from '@/pages/settings'
+import Transactions from '@/pages/transactions'
 
 function App() {
-  const { isAuthenticated, isPending, userName, logout } = useAuthSession()
+  const session = useAuthSession()
+  const { isAuthenticated, isPending, userName, logout } = session
 
   if (isPending) {
     return (
@@ -25,27 +29,29 @@ function App() {
   )
 
   return (
-    <>
+    <SessionContext.Provider value={session}>
       <Router>
         <div className="min-h-screen bg-background flex flex-col">
           <Navbar isAuthenticated={isAuthenticated} userName={userName} onLogout={logout} />
           <main className="flex-1 flex flex-col">
-            <Routes>
-              <Route
-                path="/login"
-                element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
-              />
-              <Route path="/" element={guard(<BudgetDashboard />)} />
-              <Route path="/transactions" element={guard(<Transactions />)} />
-              <Route path="/profile" element={guard(<Profile />)} />
-              <Route path="/settings" element={guard(<Settings />)} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <RouteErrorBoundary>
+              <Routes>
+                <Route
+                  path="/login"
+                  element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+                />
+                <Route path="/" element={guard(<BudgetDashboard />)} />
+                <Route path="/transactions" element={guard(<Transactions />)} />
+                <Route path="/profile" element={guard(<Profile />)} />
+                <Route path="/settings" element={guard(<Settings />)} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </RouteErrorBoundary>
           </main>
         </div>
       </Router>
       <Toaster />
-    </>
+    </SessionContext.Provider>
   )
 }
 

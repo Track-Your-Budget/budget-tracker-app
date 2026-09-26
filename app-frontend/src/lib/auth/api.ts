@@ -1,3 +1,4 @@
+import axios from 'axios'
 import type { AuthResult, BackendAuthResponse, SocialProvider } from './types'
 
 export const PROVIDER_LABELS: Record<SocialProvider, string> = {
@@ -57,23 +58,31 @@ export async function loginWithSocialProvider(
 ): Promise<AuthResult> {
   const providerLabel = PROVIDER_LABELS[provider]
 
-  let response: Response
+  const url = `/api/${provider}/login/`
+
+  // Plain axios rather than apiClient: this request carries no bearer token
+  // and must not go through the 401-refresh interceptor. `validateStatus`
+  // keeps every HTTP status on the success path so the error mapping below
+  // lives in one place, and `responseType: 'text'` keeps the raw body,
+  // because a crashed backend answers with an HTML page, not JSON.
+  let status: number
+  let responseText: string
   try {
-    response = await fetch(`/api/${provider}/login/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ code: credential }),
-    })
+    const response = await axios.post<string>(
+      url,
+      { code: credential },
+      { withCredentials: true, responseType: 'text', validateStatus: () => true },
+    )
+    status = response.status
+    responseText = response.data ?? ''
   } catch (err) {
     throw new SocialLoginError(
       'Keine Verbindung zum Server. Bitte prüfen Sie Ihre Internetverbindung.',
-      `Network error calling /api/${provider}/login/: ${String(err)}`,
+      `Network error calling ${url}: ${String(err)}`,
     )
   }
 
-  const responseText = await response.text()
-  const detail = `HTTP ${response.status} from /api/${provider}/login/: ${responseText || '<empty body>'}`
+  const detail = `HTTP ${status} from ${url}: ${responseText || '<empty body>'}`
 
   let data: (BackendAuthResponse & BackendErrorBody) | null = null
   if (responseText) {
@@ -86,8 +95,8 @@ export async function loginWithSocialProvider(
     }
   }
 
-  if (!response.ok) {
-    throw new SocialLoginError(userMessageForStatus(response.status, providerLabel), detail)
+  if (status < 200 || status >= 300) {
+    throw new SocialLoginError(userMessageForStatus(status, providerLabel), detail)
   }
 
   if (!data?.access) {

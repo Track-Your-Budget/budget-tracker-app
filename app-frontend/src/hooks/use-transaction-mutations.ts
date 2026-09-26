@@ -21,12 +21,12 @@ interface MutationCallbacks {
 export function useTransactionMutations({ onCreated, onUpdated, onDeleted }: MutationCallbacks) {
   const { toast } = useToast()
 
-  const succeed = useCallback(
-    (description: string) => toast({ title: 'Erfolg', description }),
+  const notify = useCallback(
+    (title: string, description: string) => toast({ title, description }),
     [toast],
   )
   const fail = useCallback(
-    (description: string) => toast({ title: 'Fehler', description, variant: 'destructive' }),
+    (title: string, description: string) => toast({ title, description, variant: 'destructive' }),
     [toast],
   )
 
@@ -34,26 +34,26 @@ export function useTransactionMutations({ onCreated, onUpdated, onDeleted }: Mut
     async (transaction: NewTransaction) => {
       try {
         onCreated?.(await createTransaction(transaction))
-        succeed('Transaktion wurde erfolgreich hinzugefügt.')
+        notify('Gespeichert', 'Die Transaktion wurde hinzugefügt.')
       } catch (error) {
         console.error('Error creating transaction:', error)
-        fail('Transaktion konnte nicht gespeichert werden.')
+        fail('Speichern fehlgeschlagen', 'Die Transaktion konnte nicht gespeichert werden.')
       }
     },
-    [onCreated, succeed, fail],
+    [onCreated, notify, fail],
   )
 
   const update = useCallback(
     async (transaction: Transaction) => {
       try {
         onUpdated?.(await updateTransaction(transaction))
-        succeed('Transaktion wurde aktualisiert.')
+        notify('Aktualisiert', 'Die Änderungen wurden übernommen.')
       } catch (error) {
         console.error('Error updating transaction:', error)
-        fail('Transaktion konnte nicht aktualisiert werden.')
+        fail('Aktualisieren fehlgeschlagen', 'Die Änderungen konnten nicht gespeichert werden.')
       }
     },
-    [onUpdated, succeed, fail],
+    [onUpdated, notify, fail],
   )
 
   const remove = useCallback(
@@ -61,13 +61,13 @@ export function useTransactionMutations({ onCreated, onUpdated, onDeleted }: Mut
       try {
         await deleteTransaction(id)
         onDeleted?.(id)
-        succeed('Transaktion wurde gelöscht.')
+        notify('Gelöscht', 'Die Transaktion wurde entfernt.')
       } catch (error) {
         console.error('Error deleting transaction:', error)
-        fail('Transaktion konnte nicht gelöscht werden.')
+        fail('Löschen fehlgeschlagen', 'Die Transaktion konnte nicht gelöscht werden.')
       }
     },
-    [onDeleted, succeed, fail],
+    [onDeleted, notify, fail],
   )
 
   return { create, update, remove }
