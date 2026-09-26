@@ -37,6 +37,11 @@ ALLOWED_HOSTS = [
     if host.strip()  # Ensure no empty strings are included
 ]
 
+# Cloudflare terminates TLS and forwards the original scheme to the app via
+# X-Forwarded-Proto. Without this, Django thinks the request is plain HTTP and
+# the admin CSRF check rejects the browser's HTTPS Origin header.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 # Application definition
 
@@ -155,6 +160,15 @@ CORS_ALLOWED_ORIGINS = [
 _frontend_origin = _origin(FRONTEND_URL)
 if _frontend_origin and _frontend_origin not in CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS.append(_frontend_origin)
+
+# In prod, browsers submit HTTPS Origins for POST requests. Django must trust
+# the HTTPS origins we actually serve, while leaving local http://localhost
+# entries alone for development.
+CSRF_TRUSTED_ORIGINS = [
+    origin.rstrip('/')
+    for origin in CORS_ALLOWED_ORIGINS
+    if origin.startswith('https://')
+]
 
 ROOT_URLCONF = 'backend.urls'
 
