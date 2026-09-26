@@ -35,7 +35,7 @@ export function hasActiveFilters(filters: TransactionFilters): boolean {
 }
 
 /**
- * "Aktueller Monat" starts on the 1st of this month; "Letzte 2 Monate" on the
+ * "This month" starts on the 1st of this month; "Last 2 months" on the
  * 1st of the previous month. Neither needs an upper bound.
  */
 function periodStart(period: PeriodFilter, now: Date): string | undefined {

@@ -110,11 +110,11 @@ function TransactionDetailsForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{isEditing ? 'Transaktion bearbeiten' : 'Transaktionsdetails'}</DialogTitle>
+        <DialogTitle>{isEditing ? 'Edit transaction' : 'Transaction details'}</DialogTitle>
         <DialogDescription>
           {isEditing
-            ? 'Aktualisieren Sie die Angaben dieser Transaktion.'
-            : 'Alle Details Ihrer Transaktion auf einen Blick.'}
+            ? 'Update the details of this transaction.'
+            : 'All details of your transaction at a glance.'}
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
@@ -125,7 +125,7 @@ function TransactionDetailsForm({
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Art</FormLabel>
+                  <FormLabel>Type</FormLabel>
                   <Select disabled={!isEditing} value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -133,8 +133,8 @@ function TransactionDetailsForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="income">Einnahme</SelectItem>
-                      <SelectItem value="expense">Ausgabe</SelectItem>
+                      <SelectItem value="income">Income</SelectItem>
+                      <SelectItem value="expense">Expense</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -145,11 +145,11 @@ function TransactionDetailsForm({
               control={form.control}
               name="title"
               rules={{
-                validate: (value) => value.trim().length > 0 || 'Bitte geben Sie einen Titel ein.',
+                validate: (value) => value.trim().length > 0 || 'Please enter a title.',
               }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Titel</FormLabel>
+                  <FormLabel>Title</FormLabel>
                   <FormControl>
                     <Input disabled={!isEditing} {...field} />
                   </FormControl>
@@ -162,9 +162,9 @@ function TransactionDetailsForm({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschreibung</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea disabled={!isEditing} placeholder="Keine Beschreibung" {...field} />
+                    <Textarea disabled={!isEditing} placeholder="No description" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -174,13 +174,13 @@ function TransactionDetailsForm({
               control={form.control}
               name="amount"
               rules={{
-                required: 'Bitte geben Sie einen Betrag ein.',
+                required: 'Please enter an amount.',
                 validate: (value) =>
-                  Number.parseFloat(value) > 0 || 'Der Betrag muss größer als 0 sein.',
+                  Number.parseFloat(value) > 0 || 'The amount must be greater than 0.',
               }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Betrag (€)</FormLabel>
+                  <FormLabel>Amount (€)</FormLabel>
                   <FormControl>
                     <Input disabled={!isEditing} type="number" min="0" step="0.01" {...field} />
                   </FormControl>
@@ -191,10 +191,10 @@ function TransactionDetailsForm({
             <FormField
               control={form.control}
               name="category"
-              rules={{ required: 'Bitte wählen Sie eine Kategorie.' }}
+              rules={{ required: 'Please select a category.' }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Kategorie</FormLabel>
+                  <FormLabel>Category</FormLabel>
                   <Select disabled={!isEditing} value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -216,10 +216,10 @@ function TransactionDetailsForm({
             <FormField
               control={form.control}
               name="date"
-              rules={{ required: 'Bitte wählen Sie ein Datum.' }}
+              rules={{ required: 'Please select a date.' }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Datum</FormLabel>
+                  <FormLabel>Date</FormLabel>
                   <FormControl>
                     <Input disabled={!isEditing} type="date" {...field} />
                   </FormControl>
@@ -232,7 +232,7 @@ function TransactionDetailsForm({
             {isEditing ? (
               <Button key="save" className="w-full" type="submit">
                 <Save data-icon="inline-start" />
-                Speichern
+                Save
               </Button>
             ) : (
               <Button
@@ -242,7 +242,7 @@ function TransactionDetailsForm({
                 onClick={() => setIsEditing(true)}
               >
                 <Pencil data-icon="inline-start" />
-                Bearbeiten
+                Edit
               </Button>
             )}
             {!isEditing && (
@@ -250,18 +250,16 @@ function TransactionDetailsForm({
                 <AlertDialogTrigger asChild>
                   <Button className="w-full" type="button" variant="destructive-outline">
                     <Trash2 data-icon="inline-start" />
-                    Löschen
+                    Delete
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Transaktion löschen?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Diese Aktion kann nicht rückgängig gemacht werden.
-                    </AlertDialogDescription>
+                    <AlertDialogTitle>Delete transaction?</AlertDialogTitle>
+                    <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       className="bg-destructive text-white hover:bg-destructive/90"
                       onClick={() => {
@@ -269,7 +267,7 @@ function TransactionDetailsForm({
                         onOpenChange(false)
                       }}
                     >
-                      Löschen
+                      Delete
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

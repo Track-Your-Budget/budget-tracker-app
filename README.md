@@ -1,6 +1,22 @@
 # Track Your Budget
 
-A full-stack personal finance tracker: sign in with Google, GitHub or Microsoft, record income and expenses, and see where the current month's money went. The UI is in German.
+[![Build Status](https://dev.azure.com/edodevops0169/TackYourBudget/_apis/build/status%2FTackYourBudget?branchName=main)](https://dev.azure.com/edodevops0169/TackYourBudget/_build)
+[![Live](https://img.shields.io/website?url=https%3A%2F%2Ftrack-your-budget.de&label=live)](https://track-your-budget.de)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+A full-stack personal finance tracker: sign in with Google, GitHub or Microsoft, record income and expenses, and see where the current month's money went. The UI is in English, amounts are in EUR.
+
+**Live:** <https://track-your-budget.de> (any Google, GitHub or Microsoft account works; nothing but the profile the provider shares is stored).
+
+Developed on Azure DevOps (pipelines, pull requests) and mirrored to GitHub. The Kubernetes manifests, Argo CD setup and the operations runbook live in the separate [app-manifests](https://github.com/Track-Your-Budget/manifests-app) repository.
+
+<!-- TODO: add screenshots to docs/screenshots/ and uncomment
+## Screenshots
+
+| Dashboard | Transactions |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Transactions](docs/screenshots/transactions.png) |
+-->
 
 ---
 
@@ -44,29 +60,57 @@ A full-stack personal finance tracker: sign in with Google, GitHub or Microsoft,
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart LR
+    browser["Browser (React SPA)"] -->|HTTPS| edge["Cloudflare edge"]
+    edge -->|tunnel| cloudflared["cloudflared pod"]
+    cloudflared --> traefik["Traefik ingress"]
+    traefik --> nginx["frontend: nginx serving the SPA"]
+    nginx -->|"/api, /media, /admin, /static"| django["backend: gunicorn + Django REST"]
+    django --> pg[("PostgreSQL")]
+    django -.->|"OAuth code exchange"| providers["Google / GitHub / Microsoft"]
+```
+
+How a change ships: push to `test` or `main` → Azure Pipeline lints, builds both Docker images, pushes them to Docker Hub and commits the new image tags into `app-manifests` → Argo CD notices the commit and rolls the matching overlay out to the test or prod k3s cluster.
+
+### Design decisions
+
+- **Access token in memory, refresh token in an httpOnly cookie.** JavaScript never sees the refresh token, so an XSS cannot steal a long-lived credential; `SameSite=Lax` plus rotation with blacklisting covers CSRF and replay. Nothing is written to `localStorage`.
+- **Social sign-in only.** No password storage, no reset flow, no e-mail verification to build and secure. Provider credentials are `SocialApp` rows in the database, not environment variables, so one image serves every environment.
+- **One transactions endpoint, pagination opt-in.** Without `limit` the API returns a plain array (dashboard), with `limit` a `{count, next, results}` page (history). Sorting by `-date, -id` keeps pages stable when several rows share a date.
+- **Kustomize instead of Helm.** Two overlays that differ in a handful of values do not justify a templating layer; a base plus strategic-merge patches stays readable and diffable.
+- **Cloudflare Tunnel for production.** The prod server sits behind a network with no inbound ports. `cloudflared` dials out, Cloudflare terminates TLS at the edge; the cluster never exposes a public port.
+- **Django serves `/media/` and `/static/` itself.** A deliberate trade-off for a handful of avatars and the admin's CSS; documented in `backend/backend/urls.py` together with the point at which a real file server should take over.
+
+---
+
 ## Project Structure
 
 ```
 track-your-budget/
 ├── app-frontend/
 │   ├── src/
-│   │   ├── App.tsx                  # Routes + auth guard
-│   │   ├── Dashboard.tsx            # Current-month overview
-│   │   ├── Transactions.tsx         # Paginated, filterable history
-│   │   ├── Profile.tsx / Settings.tsx / Login.tsx
+│   │   ├── app.tsx                  # Routes, auth guard, error boundary, session context
+│   │   ├── pages/
+│   │   │   ├── dashboard.tsx        # Current-month overview
+│   │   │   ├── transactions.tsx     # Paginated, filterable history
+│   │   │   ├── profile.tsx / settings.tsx / login.tsx / not-found.tsx
 │   │   ├── components/
-│   │   │   ├── auth/                # Provider buttons, RequireAuth
+│   │   │   ├── auth/                # Provider buttons, require-auth
 │   │   │   ├── budget/              # Cards, chart, list, filters, modals
-│   │   │   ├── layout/              # Navbar, PageHeader
+│   │   │   ├── layout/              # navbar, page-header, route-error-boundary
 │   │   │   ├── profile/ settings/ transactions/
 │   │   │   └── ui/                  # shadcn components (generated)
 │   │   ├── hooks/
-│   │   │   ├── use-auth-session.ts  # Token bootstrap, OAuth exchange, logout
+│   │   │   ├── use-auth-session.ts  # Token bootstrap, OAuth exchange, current user, logout
+│   │   │   ├── use-session.ts       # Context that shares the one session with every page
 │   │   │   ├── use-transaction-mutations.ts
 │   │   │   └── use-transaction-details.ts
 │   │   └── lib/
-│   │       ├── api/transactions.ts  # All transaction / summary requests
-│   │       ├── apiClient.ts         # Axios instance + refresh interceptor
+│   │       ├── api/                 # Every request: transactions.ts, users.ts
+│   │       ├── api-client.ts        # Axios instance + refresh interceptor
 │   │       ├── auth/                # Social login call, OAuth callback capture
 │   │       ├── format.ts            # Currency, date and category labels
 │   │       ├── transaction-filters.ts
@@ -85,9 +129,9 @@ track-your-budget/
 │   │   │   ├── summary.py           # Monthly totals for the chart
 │   │   │   ├── users.py             # /users/me/
 │   │   │   └── health.py            # Kubernetes probe
+│   │   ├── management/commands/seed.py  # Sample data
 │   │   └── tests.py
-│   ├── backend/settings.py
-│   └── seed_september_transactions.py
+│   └── backend/settings.py
 ├── docker-compose.yml
 └── azure-pipelines.yml
 ```
@@ -119,8 +163,9 @@ DJANGO_SECRET_KEY=change-me
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
-# Where providers send the browser back after login (must match the
-# redirect_uri registered with each provider and used in the VITE_*_LINK URLs).
+# Where providers send the browser back after login. Must be byte-for-byte
+# identical to the redirect_uri registered with each provider and to the one
+# inside every VITE_*_LINK URL: no trailing slash, same scheme, same port.
 FRONTEND_URL=http://localhost:5173
 
 # Optional; the origin of FRONTEND_URL is always allowed.
@@ -152,7 +197,7 @@ Provider credentials are **not** environment variables. They are allauth `Social
 2. Pick the provider (Google, GitHub or Microsoft), paste its client ID and secret, and attach the site with `SITE_ID = 1`.
 3. In the provider's console, register `FRONTEND_URL` as the redirect URI.
 
-A login attempt for a provider without a `SocialApp` row returns a JSON `503` and the UI shows "Der Anmeldedienst … ist auf dem Server nicht eingerichtet."
+A login attempt for a provider without a `SocialApp` row returns a JSON `503` and the UI shows "… sign-in is not configured on the server."
 
 ### 3. Frontend
 
@@ -177,11 +222,13 @@ The app runs on `http://localhost:5173`. The Vite dev server proxies `/api` to `
 
 ### 4. Sample data (optional)
 
-Edit `USERNAME` in `backend/seed_september_transactions.py`, then:
-
 ```bash
-python manage.py shell < seed_september_transactions.py
+python manage.py seed --user <username>              # last 3 months
+python manage.py seed --user <username> --months 6 --per-month 15
+python manage.py seed --user <username> --clear --seed 42
 ```
+
+Every month gets salary, rent and subscriptions plus a random set of everyday expenses; the current month only up to today. `--seed` makes the data reproducible, `--clear` deletes the user's existing transactions first.
 
 ---
 
@@ -193,8 +240,9 @@ python manage.py shell < seed_september_transactions.py
 | Type-check + production build | `npm run build` |
 | Lint | `npm run lint` |
 | Format / check formatting | `npm run format` / `npm run format:check` |
-| Backend tests | `python manage.py test api` |
+| Backend tests | `python manage.py test api` (no tests yet, see [Testing](#testing)) |
 | Backend system check | `python manage.py check` |
+| Sample data | `python manage.py seed --user <username>` |
 
 Prettier is configured in `app-frontend/.prettierrc` (single quotes, no semicolons, 100 columns). The generated `src/components/ui` folder is excluded from formatting.
 
@@ -253,13 +301,13 @@ Rows are ordered by date descending, then id descending, so pages never overlap 
 
 | Category value | Label |
 |---|---|
-| `gehalt` | Gehalt (Salary) |
-| `miete` | Miete (Rent) |
-| `lebensmittel` | Lebensmittel (Groceries) |
+| `gehalt` | Salary |
+| `miete` | Rent |
+| `lebensmittel` | Groceries |
 | `transport` | Transport |
-| `unterhaltung` | Unterhaltung (Entertainment) |
-| `versicherung` | Versicherung (Insurance) |
-| `sonstiges` | Sonstiges (Miscellaneous) |
+| `unterhaltung` | Entertainment |
+| `versicherung` | Insurance |
+| `sonstiges` | Miscellaneous |
 
 ---
 
@@ -274,6 +322,7 @@ User clicks "Continue with <Provider>"
   → Backend exchanges the code with the provider using the SocialApp secret
   → Backend returns an access token in the body and sets the httpOnly "jwt-refresh" cookie
   → Access token is kept in memory only; every request sends it as a Bearer header
+  → The session loads /api/users/me/ once and shares it with every page via SessionContext
   → On 401, apiClient refreshes via /api/token/refresh/ once and replays queued requests
   → If the refresh fails, the session is cleared and the router redirects to /login
 ```
@@ -290,17 +339,57 @@ User clicks "Continue with <Provider>"
 docker compose up --build
 ```
 
-Compose reads its variables from a `.env` file next to `docker-compose.yml` (`DJANGO_SECRET_KEY`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`). The frontend container serves the built SPA on `http://localhost:3000` and proxies `/api`, `/media`, `/admin` and `/static` to the backend service. Provider links are injected at container start through `VITE_GOOGLE_LINK`, `VITE_GITHUB_LINK` and `VITE_MICROSOFT_LINK`, which the entrypoint writes into `env-config.js`, so the image does not need a rebuild per environment.
+Copy `.env.example` to `.env` next to `docker-compose.yml` and fill it in. Compose reads `DJANGO_SECRET_KEY`, the `POSTGRES_*` values, `FRONTEND_URL` (defaults to `http://localhost:3000`, register that as the redirect URI at the providers) and the three `VITE_*_LINK` URLs from it. The frontend container serves the built SPA on `http://localhost:3000` and proxies `/api`, `/media`, `/admin` and `/static` to the backend service. The provider links are written into `env-config.js` at container start, so the image does not need a rebuild per environment. The backend waits for Postgres, runs migrations and starts Gunicorn; the frontend waits for the backend's health check. Avatars persist in the `backend_media` volume.
+
+After the first start, create the `SocialApp` rows through `http://localhost:3000/admin/` exactly as in [step 2](#2-register-the-oauth-providers).
 
 ---
 
-## CI/CD
+## CI/CD and Environments
+
+### Branch strategy
+
+Feature branch → pull request into `dev` → pull request into `test` → pull request into `main`. Only `test` and `main` are deployed; `dev` is the integration branch for day-to-day work.
+
+| Environment | Branch | URL | Runs on |
+|---|---|---|---|
+| local | `dev` (any) | `http://localhost:5173` | Vite dev server + `manage.py runserver` |
+| test | `test` | `http://dev.track-your-budget.de` (not in public DNS, see the manifests README) | k3s on the dev server, Postgres in-cluster |
+| production | `main` | `https://track-your-budget.de` | k3s on the prod server behind a Cloudflare Tunnel, Postgres on the host |
+
+### Pipeline
 
 `azure-pipelines.yml` runs on pushes and pull requests to `main` and `test`:
 
-1. **Test & Lint**: `npm run lint` for the frontend, `manage.py check` and `manage.py test` for the backend.
+1. **Lint & Check**: `npm run lint` for the frontend, `manage.py check` and `manage.py test` for the backend. The backend test suite does not exist yet (see [Testing](#testing)), so this stage currently guards against lint errors and broken Django configuration only.
 2. **Build & Push**: on `test` and `main` only, both Docker images are built and pushed to Docker Hub tagged with the build id (`main` also updates `latest`).
-3. **Update Manifests**: the pipeline clones the separate `app-manifests` repository and runs `kustomize edit set image` in `overlays/test` or `overlays/prod`, from where the cluster picks up the new tags.
+3. **Update Manifests**: the pipeline clones the separate [app-manifests](https://github.com/Track-Your-Budget/manifests-app) repository and runs `kustomize edit set image` in `overlays/test` or `overlays/prod`. Argo CD on the dev server watches that repository and rolls the new tags out.
+
+---
+
+## Testing
+
+There is no automated test suite yet: `backend/api/tests.py` is empty and the frontend has no test runner. This is the biggest open item. The plan, in order:
+
+1. **Backend** (pytest + pytest-django, Postgres service container in the pipeline): user isolation on every endpoint, the `GET /transactions/` filters and pagination contract, the monthly summary across a year boundary, and the JSON `503` for an unconfigured provider.
+2. **Frontend** (Vitest + Testing Library + msw): the date helpers in `lib/utils.ts`, the filter-to-query mapping, the OAuth callback capture and the 401-refresh queue in `lib/api-client.ts`.
+3. **Smoke test** (Playwright) against the test environment after each deployment.
+
+Until then, `npm run build` (type-check) and `npm run lint` are the gates for the frontend, `manage.py check` for the backend.
+
+---
+
+## Known Limitations and Roadmap
+
+Known limitations:
+
+- The **Settings** page (quick templates, limits, scheduled entries) is a UI preview; its state is not persisted.
+- Categories are a fixed set; users cannot define their own.
+- Both clusters are single-node and there is no automated database backup yet.
+- Secrets are applied to the clusters by hand from templates; the Argo CD `Application` objects are not stored in Git.
+- No rate limiting on the login endpoints.
+
+Roadmap, roughly in order: automated tests and a GitHub Actions workflow, user-defined categories, budgets per category with warnings on the dashboard, recurring transactions, CSV import, a database backup job, dark mode.
 
 ---
 
@@ -309,3 +398,9 @@ Compose reads its variables from a `.env` file next to `docker-compose.yml` (`DJ
 - `DEBUG` defaults to `False`; set `DEBUG=True` only in `backend/.env` for local development.
 - `/media/` and `/static/` are served by Django in every environment so avatars and the admin panel work behind the nginx proxy.
 - `MEDIA_ROOT` must stay a dedicated directory; it is exposed under `/media/`.
+
+---
+
+## License
+
+[MIT](LICENSE)

@@ -43,19 +43,19 @@ export function TransactionFilters({
           type="search"
           value={searchInput}
           onChange={(event) => onSearchInputChange(event.target.value)}
-          placeholder="Titel oder Notizen durchsuchen…"
-          aria-label="Transaktionen durchsuchen"
+          placeholder="Search title or notes…"
+          aria-label="Search transactions"
           className="pl-9"
         />
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:flex">
         <Select value={filters.category} onValueChange={(v) => onFilterChange('category', v)}>
-          <SelectTrigger className="w-full lg:w-44" aria-label="Kategorie">
-            <SelectValue placeholder="Kategorie" />
+          <SelectTrigger className="w-full lg:w-44" aria-label="Category">
+            <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>Alle Kategorien</SelectItem>
+            <SelectItem value={ALL}>All categories</SelectItem>
             {CATEGORIES.map((category) => (
               <SelectItem key={category.value} value={category.value}>
                 {category.label}
@@ -65,13 +65,13 @@ export function TransactionFilters({
         </Select>
 
         <Select value={filters.type} onValueChange={(v) => onFilterChange('type', v as TypeFilter)}>
-          <SelectTrigger className="w-full lg:w-40" aria-label="Art">
-            <SelectValue placeholder="Art" />
+          <SelectTrigger className="w-full lg:w-40" aria-label="Type">
+            <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>Einnahmen & Ausgaben</SelectItem>
-            <SelectItem value="income">Nur Einnahmen</SelectItem>
-            <SelectItem value="expense">Nur Ausgaben</SelectItem>
+            <SelectItem value={ALL}>Income & expenses</SelectItem>
+            <SelectItem value="income">Income only</SelectItem>
+            <SelectItem value="expense">Expenses only</SelectItem>
           </SelectContent>
         </Select>
 
@@ -79,20 +79,20 @@ export function TransactionFilters({
           value={filters.period}
           onValueChange={(v) => onFilterChange('period', v as PeriodFilter)}
         >
-          <SelectTrigger className="w-full lg:w-44" aria-label="Zeitraum">
-            <SelectValue placeholder="Zeitraum" />
+          <SelectTrigger className="w-full lg:w-44" aria-label="Period">
+            <SelectValue placeholder="Period" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>Gesamter Zeitraum</SelectItem>
-            <SelectItem value="current-month">Aktueller Monat</SelectItem>
-            <SelectItem value="last-2-months">Letzte 2 Monate</SelectItem>
+            <SelectItem value={ALL}>All time</SelectItem>
+            <SelectItem value="current-month">This month</SelectItem>
+            <SelectItem value="last-2-months">Last 2 months</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {showReset && (
         <Button variant="ghost" size="sm" onClick={onReset} className="w-fit">
-          <X /> Filter zurücksetzen
+          <X /> Reset filters
         </Button>
       )}
     </section>

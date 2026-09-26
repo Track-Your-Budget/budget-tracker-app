@@ -18,29 +18,29 @@ interface ScheduledEntry {
 const initialScheduled: ScheduledEntry[] = [
   {
     id: '1',
-    title: 'Miete',
-    category: 'Wohnen',
-    amount: '1.200,00 €',
-    cadence: 'Monatlich',
-    next: '01.06.2026',
+    title: 'Rent',
+    category: 'Housing',
+    amount: '€1,200.00',
+    cadence: 'Monthly',
+    next: '1 Jun 2026',
     active: true,
   },
   {
     id: '2',
     title: 'Netflix',
-    category: 'Unterhaltung',
-    amount: '17,99 €',
-    cadence: 'Monatlich',
-    next: '08.06.2026',
+    category: 'Entertainment',
+    amount: '€17.99',
+    cadence: 'Monthly',
+    next: '8 Jun 2026',
     active: true,
   },
   {
     id: '3',
-    title: 'Versicherung',
-    category: 'Versicherung',
-    amount: '320,00 €',
-    cadence: 'Vierteljährlich',
-    next: '15.07.2026',
+    title: 'Insurance',
+    category: 'Insurance',
+    amount: '€320.00',
+    cadence: 'Quarterly',
+    next: '15 Jul 2026',
     active: false,
   },
 ]
@@ -53,10 +53,8 @@ export function ScheduledTab() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Geplante Transaktionen</CardTitle>
-          <CardDescription>
-            Wiederkehrende Einnahmen und Ausgaben für eine bessere Planung.
-          </CardDescription>
+          <CardTitle>Scheduled transactions</CardTitle>
+          <CardDescription>Recurring income and expenses for better planning.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {scheduled.map((item) => (
@@ -71,7 +69,7 @@ export function ScheduledTab() {
                 <div>
                   <p className="font-medium">{item.title}</p>
                   <p className="text-sm text-muted-foreground">
-                    {item.category} · {item.cadence} · Nächster Termin {item.next}
+                    {item.category} · {item.cadence} · Next on {item.next}
                   </p>
                 </div>
               </div>
@@ -84,12 +82,12 @@ export function ScheduledTab() {
                       current.map((entry) => (entry.id === item.id ? { ...entry, active } : entry)),
                     )
                   }
-                  aria-label={`${item.title} aktivieren`}
+                  aria-label={`Enable ${item.title}`}
                 />
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={`${item.title} löschen`}
+                  aria-label={`Delete ${item.title}`}
                   onClick={() =>
                     setScheduled((current) => current.filter((entry) => entry.id !== item.id))
                   }
@@ -105,12 +103,12 @@ export function ScheduledTab() {
         variant="outline"
         onClick={() =>
           toast({
-            title: 'Neue geplante Transaktion',
-            description: 'Das Formular für geplante Transaktionen ist vorbereitet.',
+            title: 'New scheduled transaction',
+            description: 'The form for scheduled transactions is on its way.',
           })
         }
       >
-        <Plus /> Geplante Transaktion hinzufügen <ChevronRight />
+        <Plus /> Add scheduled transaction <ChevronRight />
       </Button>
     </div>
   )

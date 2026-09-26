@@ -1,4 +1,4 @@
-import apiClient from '@/lib/apiClient'
+import apiClient from '@/lib/api-client'
 import type { MonthlyData, PaginatedResponse, Transaction } from '@/lib/types'
 import { monthBounds } from '@/lib/utils'
 

@@ -14,13 +14,13 @@ export default function Settings() {
         <Tabs defaultValue="favorites" className="space-y-6">
           <TabsList className="grid h-auto w-full grid-cols-3 bg-card p-1 lg:w-fit">
             <TabsTrigger value="favorites" className="gap-2 px-5 py-2.5">
-              <Heart className="size-4" /> Favoriten
+              <Heart className="size-4" /> Favorites
             </TabsTrigger>
             <TabsTrigger value="thresholds" className="gap-2 px-5 py-2.5">
-              <BellRing className="size-4" /> Schwellenwerte
+              <BellRing className="size-4" /> Limits
             </TabsTrigger>
             <TabsTrigger value="scheduled" className="gap-2 px-5 py-2.5">
-              <CalendarClock className="size-4" /> Geplant
+              <CalendarClock className="size-4" /> Scheduled
             </TabsTrigger>
           </TabsList>
 

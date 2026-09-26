@@ -5,13 +5,13 @@ import { PageHeader } from '@/components/layout/page-header'
 export function SettingsHeader() {
   return (
     <PageHeader
-      eyebrow="Kontoeinstellungen"
+      eyebrow="Account settings"
       eyebrowIcon={SlidersHorizontal}
-      title="Einstellungen"
-      description="Automatisieren Sie Ihr Budget und behalten Sie Ihre Regeln im Blick."
+      title="Settings"
+      description="Automate your budget and keep an eye on your rules."
       aside={
         <Badge variant="secondary" className="w-fit gap-2 px-3 py-1.5">
-          <Check className="size-3.5" /> Änderungen werden lokal gespeichert
+          <Check className="size-3.5" /> Preview: changes are not saved yet
         </Badge>
       }
     />
