@@ -25,7 +25,7 @@ INCOME = Transaction.TransactionType.INCOME
 EXPENSE = Transaction.TransactionType.EXPENSE
 
 # Rows in the "largest expenses" list.
-TOP_EXPENSES = 5
+TOP_EXPENSES = 6
 
 ZERO = Decimal('0.00')
 
