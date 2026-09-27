@@ -14,6 +14,17 @@ const wholeCurrencyFormatter = new Intl.NumberFormat(LOCALE, {
   maximumFractionDigits: 0,
 })
 
+const percentFormatter = new Intl.NumberFormat(LOCALE, {
+  style: 'percent',
+  maximumFractionDigits: 0,
+})
+
+const signedPercentFormatter = new Intl.NumberFormat(LOCALE, {
+  style: 'percent',
+  maximumFractionDigits: 0,
+  signDisplay: 'exceptZero',
+})
+
 /** `1234.5` → `"€1,234.50"` */
 export function formatCurrency(amount: number): string {
   return currencyFormatter.format(amount)
@@ -31,6 +42,21 @@ export function formatDate(isoDate: string): string {
     month: '2-digit',
     year: 'numeric',
   })
+}
+
+/** `0.123` → `"12%"`; with `signed`, `"+12%"` / `"-12%"` / `"0%"`. */
+export function formatPercent(fraction: number, { signed = false } = {}): string {
+  return (signed ? signedPercentFormatter : percentFormatter).format(fraction)
+}
+
+/** `-95.5` → `"-€95.50"`, `95.5` → `"+€95.50"`; for deltas. */
+export function formatSignedCurrency(amount: number): string {
+  return amount > 0 ? `+${currencyFormatter.format(amount)}` : currencyFormatter.format(amount)
+}
+
+/** `new Date(2026, 7, 1)` → `"August"` */
+export function formatMonthName(date: Date): string {
+  return date.toLocaleString(LOCALE, { month: 'long' })
 }
 
 /** `new Date(2026, 8, 19)` → `"September 2026"` */
