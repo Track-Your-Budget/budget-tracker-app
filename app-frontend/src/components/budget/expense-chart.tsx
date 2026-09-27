@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { ReactNode } from 'react'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import {
   ChartContainer,
@@ -23,15 +24,22 @@ const chartConfig = {
 interface ExpenseChartProps {
   data: MonthlyData[]
   isLoading?: boolean
+  /** Rendered on the right side of the card header (e.g. a link to the insights page). */
+  headerAction?: ReactNode
 }
 
-export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
+export function ExpenseChart({ data, isLoading, headerAction }: ExpenseChartProps) {
+  const header = (
+    <CardHeader>
+      <CardTitle>Monthly overview</CardTitle>
+      {headerAction && <CardAction>{headerAction}</CardAction>}
+    </CardHeader>
+  )
+
   if (isLoading) {
     return (
       <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle>Monthly overview</CardTitle>
-        </CardHeader>
+        {header}
         <CardContent>
           <div className="h-[300px] animate-pulse rounded bg-muted" />
         </CardContent>
@@ -41,9 +49,7 @@ export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
 
   return (
     <Card className="border-border/50">
-      <CardHeader>
-        <CardTitle>Monthly overview</CardTitle>
-      </CardHeader>
+      {header}
       <CardContent>
         <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full">
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
