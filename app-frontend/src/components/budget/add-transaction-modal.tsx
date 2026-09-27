@@ -67,10 +67,6 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>New transaction</DialogTitle>
-          <DialogDescription>
-            A title and an amount are enough. Category and type are detected automatically, the date
-            defaults to today.
-          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           {/* key resets the collapsed notes field together with the values */}

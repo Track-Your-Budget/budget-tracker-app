@@ -18,7 +18,7 @@ export function TopExpenses({ expenses, isLoading }: TopExpensesProps) {
       <Card className="border-border/50">
         <CardHeader>{title}</CardHeader>
         <CardContent className="space-y-4">
-          {[...Array(5)].map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <div key={i} className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
