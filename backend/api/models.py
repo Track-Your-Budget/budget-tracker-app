@@ -12,6 +12,9 @@ class Profile(models.Model):
     # mounted over that path in the cluster.
     avatar = models.ImageField(upload_to=profile_path, blank=True)
     bio = models.TextField(blank=True)
+    # When the user answered the welcome dialog (with or without sample
+    # data). Null means it has not been shown yet.
+    onboarded_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.user.username
