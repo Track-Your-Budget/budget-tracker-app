@@ -1,4 +1,4 @@
-import { User, Settings, LogOut } from 'lucide-react'
+import { User, Settings, LogOut, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,6 +29,14 @@ export function UserMenu({ onLogout, userName }: { onLogout: () => void; userNam
             <DropdownMenuSeparator />
           </>
         )}
+        <DropdownMenuItem
+          variant="outline"
+          className="cursor-pointer"
+          onClick={() => navigate('/insights')}
+        >
+          <Sparkles className="mr-2 h-4 w-4" />
+          Insights
+        </DropdownMenuItem>
         <DropdownMenuItem
           variant="outline"
           className="cursor-pointer"

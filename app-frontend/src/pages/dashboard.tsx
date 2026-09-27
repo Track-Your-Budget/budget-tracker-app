@@ -162,7 +162,17 @@ export default function BudgetDashboard() {
             }
           />
           <div className="space-y-8">
-            <ExpenseChart data={monthlyData} isLoading={isLoading} />
+            <ExpenseChart
+              data={monthlyData}
+              isLoading={isLoading}
+              headerAction={
+                <Button asChild variant="secondary" size="sm" className="px-0">
+                  <Link to="/insights">
+                    Insights <ArrowRight />
+                  </Link>
+                </Button>
+              }
+            />
             <CategoryBreakdown transactions={monthTransactions} isLoading={isLoading} />
           </div>
         </div>

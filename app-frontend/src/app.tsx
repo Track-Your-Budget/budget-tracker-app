@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { useAuthSession } from '@/hooks/use-auth-session'
 import { SessionContext } from '@/hooks/use-session'
 import BudgetDashboard from '@/pages/dashboard'
+import Insights from '@/pages/insights'
 import Login from '@/pages/login'
 import NotFound from '@/pages/not-found'
 import Profile from '@/pages/profile'
@@ -42,6 +43,7 @@ function App() {
                 />
                 <Route path="/" element={guard(<BudgetDashboard />)} />
                 <Route path="/transactions" element={guard(<Transactions />)} />
+                <Route path="/insights" element={guard(<Insights />)} />
                 <Route path="/profile" element={guard(<Profile />)} />
                 <Route path="/settings" element={guard(<Settings />)} />
                 <Route path="*" element={<NotFound />} />
