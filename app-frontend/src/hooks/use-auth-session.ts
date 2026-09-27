@@ -21,6 +21,8 @@ export interface AuthSession {
   isUserLoading: boolean
   /** Display name derived from `user`; undefined until the user is loaded. */
   userName: string | undefined
+  /** Merge server-confirmed changes into `user` without refetching it. */
+  updateUser: (patch: Partial<CurrentUser>) => void
   logout: () => Promise<void>
 }
 
@@ -149,6 +151,10 @@ export function useAuthSession(): AuthSession {
     applyAccessToken(null)
   }, [applyAccessToken])
 
+  const updateUser = useCallback((patch: Partial<CurrentUser>) => {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev))
+  }, [])
+
   const isAuthenticated = Boolean(authToken)
 
   return {
@@ -157,6 +163,7 @@ export function useAuthSession(): AuthSession {
     user,
     isUserLoading: isAuthenticated && user === null && !userLoadFailed,
     userName: user ? formatUserName(user) : undefined,
+    updateUser,
     logout,
   }
 }
