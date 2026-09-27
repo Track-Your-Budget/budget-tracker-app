@@ -12,6 +12,7 @@ from .views import (
     TransactionDetailView,
     TransactionView,
     UserMe,
+    YearInsightsView,
 )
 
 urlpatterns = [
@@ -36,4 +37,5 @@ urlpatterns = [
     path('monthly-summary/', MonthlySummaryView.as_view(), name='monthly_summary'),
     # One month compared with the one before; the insights page.
     path('insights/month/', MonthInsightsView.as_view(), name='month_insights'),
+    path('insights/year/', YearInsightsView.as_view(), name='year_insights'),
 ]
