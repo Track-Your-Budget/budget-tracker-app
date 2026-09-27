@@ -8,8 +8,12 @@ import { TransactionList } from '@/components/budget/transaction-list'
 import { TransactionDetailsModal } from '@/components/budget/transaction-details-modal'
 import { ExpenseChart } from '@/components/budget/expense-chart'
 import { CategoryBreakdown } from '@/components/budget/category-breakdown'
+import { WelcomeDialog } from '@/components/onboarding/welcome-dialog'
+import { useSession } from '@/hooks/use-session'
+import { useToast } from '@/hooks/use-toast'
 import { useTransactionDetails } from '@/hooks/use-transaction-details'
 import { useTransactionMutations } from '@/hooks/use-transaction-mutations'
+import type { OnboardingResult } from '@/lib/api/onboarding'
 import {
   fetchMonthlySummary,
   fetchMonthTransactions,
@@ -47,6 +51,10 @@ export default function BudgetDashboard() {
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  // Bumped when the server changed the data behind our back (sample data).
+  const [reloadToken, setReloadToken] = useState(0)
+  const { user, updateUser } = useSession()
+  const { toast } = useToast()
   const {
     selected: selectedTransaction,
     setSelected: setSelectedTransaction,
@@ -79,7 +87,7 @@ export default function BudgetDashboard() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadToken])
 
   // After a successful write, re-read the recent list from the server. That
   // keeps it at exactly RECENT_COUNT rows in server order without
@@ -124,6 +132,17 @@ export default function BudgetDashboard() {
       [reloadRecent],
     ),
   })
+
+  const handleWelcomeDone = ({ created }: OnboardingResult) => {
+    updateUser({ needs_welcome: false })
+    if (created > 0) {
+      setReloadToken((token) => token + 1)
+      toast({
+        title: 'Sample data added',
+        description: `${created} example transactions from the last 60 days are in your account.`,
+      })
+    }
+  }
 
   const now = new Date()
   const totals = sumByType(monthTransactions)
@@ -177,6 +196,12 @@ export default function BudgetDashboard() {
           </div>
         </div>
       </div>
+
+      <WelcomeDialog
+        open={user?.needs_welcome ?? false}
+        userName={user?.first_name || undefined}
+        onDone={handleWelcomeDone}
+      />
 
       <TransactionDetailsModal
         transaction={selectedTransaction}
