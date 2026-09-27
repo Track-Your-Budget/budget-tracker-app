@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { enGB } from 'date-fns/locale'
+import { CalendarDays, Plus } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +12,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Form,
   FormControl,
@@ -19,50 +24,57 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Plus } from 'lucide-react'
-import { CATEGORIES, type Transaction } from '@/lib/types'
-import { Textarea } from '@/components/ui/textarea'
-import { todayIso, type TransactionFormValues } from '@/lib/transaction-form'
+import type { Transaction } from '@/lib/types'
+import { formatDate } from '@/lib/format'
+import { parseAmount, todayIso, type QuickAddFormValues } from '@/lib/transaction-form'
+import { parseLocalDate, toIsoDate } from '@/lib/utils'
 
 interface AddTransactionModalProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void
 }
 
-const emptyTransaction = (): TransactionFormValues => ({
+// The form no longer asks for category and type: the next step derives both
+// from title + notes on the server. Until that endpoint exists, every new
+// row is filed as a miscellaneous expense so the rest of the app keeps working.
+const PENDING_CLASSIFICATION: Pick<Transaction, 'category' | 'type'> = {
+  category: 'sonstiges',
   type: 'expense',
+}
+
+const emptyValues = (): QuickAddFormValues => ({
   title: '',
   amount: '',
-  category: '',
   date: todayIso(),
   notes: '',
 })
 
 export function AddTransactionModal({ onAddTransaction }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false)
-  const form = useForm<TransactionFormValues>({ defaultValues: emptyTransaction() })
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  // Notes start collapsed; the user reveals the field on demand.
+  const [showNotes, setShowNotes] = useState(false)
+  const form = useForm<QuickAddFormValues>({ defaultValues: emptyValues() })
 
-  const handleSubmit = (values: TransactionFormValues) => {
+  const resetForm = () => {
+    form.reset(emptyValues())
+    setCalendarOpen(false)
+    setShowNotes(false)
+  }
+
+  const handleSubmit = (values: QuickAddFormValues) => {
     onAddTransaction({
+      ...PENDING_CLASSIFICATION,
       title: values.title.trim(),
-      notes: values.notes,
-      amount: Number.parseFloat(values.amount),
-      category: values.category,
+      amount: parseAmount(values.amount),
       date: values.date,
-      type: values.type,
+      notes: values.notes.trim(),
     })
-    form.reset(emptyTransaction())
+    resetForm()
     setOpen(false)
   }
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) form.reset(emptyTransaction())
+    if (!next) resetForm()
     setOpen(next)
   }
 
@@ -77,32 +89,13 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>New transaction</DialogTitle>
-          <DialogDescription>Add a new transaction to your budget.</DialogDescription>
+          <DialogDescription>
+            A title and an amount are enough. The date defaults to today.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} noValidate>
             <div className="grid gap-4 py-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="income">Income</SelectItem>
-                        <SelectItem value="expense">Expense</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="title"
@@ -113,7 +106,7 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Salary, Groceries…" {...field} />
+                      <Input placeholder="e.g. Groceries, Salary…" autoFocus {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -125,39 +118,16 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                 rules={{
                   required: 'Please enter an amount.',
                   validate: (value) =>
-                    Number.parseFloat(value) > 0 || 'The amount must be greater than 0.',
+                    parseAmount(value) > 0 || 'The amount must be greater than 0.',
                 }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Amount (€)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
+                      {/* Text + decimal keyboard instead of type="number": accepts
+                          "12,50" as well as "12.50" and never scrolls the value. */}
+                      <Input inputMode="decimal" placeholder="0.00" {...field} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="category"
-                rules={{ required: 'Please select a category.' }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {CATEGORIES.map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -165,32 +135,88 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
               <FormField
                 control={form.control}
                 name="date"
-                rules={{ required: 'Please select a date.' }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const isToday = field.value === todayIso()
+                  return (
+                    <FormItem>
+                      <FormLabel>Date</FormLabel>
+                      <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-1.5 text-sm">
+                        <span className="flex items-center gap-2">
+                          <CalendarDays className="size-4 text-muted-foreground" />
+                          {isToday ? `Today, ${formatDate(field.value)}` : formatDate(field.value)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          {!isToday && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => field.onChange(todayIso())}
+                            >
+                              Today
+                            </Button>
+                          )}
+                          {/* The calendar floats above the form in its own
+                              popover instead of pushing the fields down. */}
+                          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                            <PopoverTrigger asChild>
+                              <Button type="button" variant="link" size="sm">
+                                Change
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <Calendar
+                                mode="single"
+                                locale={enGB}
+                                selected={parseLocalDate(field.value)}
+                                defaultMonth={parseLocalDate(field.value)}
+                                onSelect={(day) => {
+                                  if (!day) return
+                                  field.onChange(toIsoDate(day))
+                                  setCalendarOpen(false)
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </span>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Notes <span className="text-muted-foreground text-xs">(optional)</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Additional information…" rows={3} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {showNotes ? (
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Notes <span className="text-muted-foreground text-xs">(optional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Additional information…"
+                          rows={3}
+                          autoFocus
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-fit px-2 text-muted-foreground"
+                  onClick={() => setShowNotes(true)}
+                >
+                  <Plus /> Add a note
+                </Button>
+              )}
             </div>
             <DialogFooter className="grid grid-cols-2 gap-2">
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
