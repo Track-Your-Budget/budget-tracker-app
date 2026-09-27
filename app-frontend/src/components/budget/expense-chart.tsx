@@ -26,12 +26,19 @@ interface ExpenseChartProps {
   isLoading?: boolean
   /** Rendered on the right side of the card header (e.g. a link to the insights page). */
   headerAction?: ReactNode
+  /** Card heading. Defaults to "Monthly overview". */
+  title?: string
 }
 
-export function ExpenseChart({ data, isLoading, headerAction }: ExpenseChartProps) {
+export function ExpenseChart({
+  data,
+  isLoading,
+  headerAction,
+  title = 'Monthly overview',
+}: ExpenseChartProps) {
   const header = (
     <CardHeader>
-      <CardTitle>Monthly overview</CardTitle>
+      <CardTitle>{title}</CardTitle>
       {headerAction && <CardAction>{headerAction}</CardAction>}
     </CardHeader>
   )
