@@ -174,6 +174,10 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 # Set to True behind HTTPS so the refresh cookie is marked Secure.
 JWT_AUTH_SECURE=False
 
+# Optional: TypeSafe System One key for automatic category/type detection
+# (POST /api/transactions/classify/). Without it the endpoint returns a fallback.
+TYPESAFE_API_KEY=
+
 POSTGRES_DB=budget_tracker
 POSTGRES_USER=budget
 POSTGRES_PASSWORD=secret
@@ -261,6 +265,7 @@ All endpoints live under `/api/`. Authenticated endpoints expect `Authorization:
 | GET | `/users/me/` | Yes | Current user with avatar URL and bio |
 | GET | `/transactions/` | Yes | List transactions (see query parameters below) |
 | POST | `/transactions/` | Yes | Create a transaction |
+| POST | `/transactions/classify/` | Yes | Suggest `category` and `type` for `{ "title", "notes" }` via the System One model; falls back to `sonstiges`/`expense` when unavailable (30 requests/min per user) |
 | PUT | `/transactions/<id>/` | Yes | Update a transaction |
 | DELETE | `/transactions/<id>/` | Yes | Delete a transaction |
 | GET | `/monthly-summary/` | Yes | Income and expense totals for the last three months |
