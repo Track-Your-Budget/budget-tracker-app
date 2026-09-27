@@ -5,6 +5,7 @@ tests and anything else that predates the split.
 """
 
 from .auth import GitHubLogin, GoogleLogin, MicrosoftLogin, SocialProviderMisconfigured
+from .classify import TransactionClassifyView
 from .health import HealthView
 from .summary import MonthlySummaryView
 from .transactions import TransactionDetailView, TransactionView
@@ -17,6 +18,7 @@ __all__ = [
     'MicrosoftLogin',
     'MonthlySummaryView',
     'SocialProviderMisconfigured',
+    'TransactionClassifyView',
     'TransactionDetailView',
     'TransactionView',
     'UserMe',

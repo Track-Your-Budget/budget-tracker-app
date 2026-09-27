@@ -7,6 +7,7 @@ from .views import (
     HealthView,
     MicrosoftLogin,
     MonthlySummaryView,
+    TransactionClassifyView,
     TransactionDetailView,
     TransactionView,
     UserMe,
@@ -27,6 +28,9 @@ urlpatterns = [
     # Blacklists refresh (from cookie) and clears the cookie.
     path('auth/logout/', LogoutView.as_view(), name='auth_logout'),
     path('transactions/', TransactionView.as_view(), name='transactions'),
+    # Must sit before the <int:pk> route only for readability; 'classify' can
+    # never match <int:pk> anyway.
+    path('transactions/classify/', TransactionClassifyView.as_view(), name='transaction_classify'),
     path('transactions/<int:pk>/', TransactionDetailView.as_view(), name='transaction_detail'),
     path('monthly-summary/', MonthlySummaryView.as_view(), name='monthly_summary'),
 ]
