@@ -54,6 +54,11 @@ export function formatSignedCurrency(amount: number): string {
   return amount > 0 ? `+${currencyFormatter.format(amount)}` : currencyFormatter.format(amount)
 }
 
+/** `new Date(2026, 8, 1)` → `"Sep"`; three letters, so en-GB's "Sept" matches the dashboard chart. */
+export function formatMonthShort(date: Date): string {
+  return date.toLocaleString(LOCALE, { month: 'short' }).slice(0, 3)
+}
+
 /** `new Date(2026, 7, 1)` → `"August"` */
 export function formatMonthName(date: Date): string {
   return date.toLocaleString(LOCALE, { month: 'long' })
