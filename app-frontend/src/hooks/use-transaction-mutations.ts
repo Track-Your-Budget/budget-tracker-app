@@ -1,12 +1,14 @@
 import { useCallback } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import {
+  classifyTransaction,
   createTransaction,
   deleteTransaction,
   updateTransaction,
-  type NewTransaction,
+  type QuickTransactionInput,
 } from '@/lib/api/transactions'
 import type { Transaction } from '@/lib/types'
+import { getCategoryLabel } from '@/lib/format'
 
 interface MutationCallbacks {
   onCreated?: (transaction: Transaction) => void
@@ -30,11 +32,27 @@ export function useTransactionMutations({ onCreated, onUpdated, onDeleted }: Mut
     [toast],
   )
 
+  // Two requests on purpose: classify, then save. Keeping them apart means a
+  // later "preview before saving" needs no backend change, and a failed save
+  // never leaves a half-classified row behind.
   const create = useCallback(
-    async (transaction: NewTransaction) => {
+    async (input: QuickTransactionInput) => {
       try {
-        onCreated?.(await createTransaction(transaction))
-        notify('Saved', 'The transaction was added.')
+        const verdict = await classifyTransaction({ title: input.title, notes: input.notes })
+        const saved = await createTransaction({
+          ...input,
+          category: verdict.category,
+          type: verdict.type,
+        })
+        onCreated?.(saved)
+        if (verdict.source === 'ai') {
+          notify(
+            'Saved',
+            `Filed as ${getCategoryLabel(saved.category)} (${saved.type}). Open it to correct.`,
+          )
+        } else {
+          notify('Saved', 'Category could not be detected; filed as Miscellaneous.')
+        }
       } catch (error) {
         console.error('Error creating transaction:', error)
         fail('Save failed', 'The transaction could not be saved.')

@@ -24,21 +24,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import type { Transaction } from '@/lib/types'
+import type { QuickTransactionInput } from '@/lib/api/transactions'
 import { formatDate } from '@/lib/format'
 import { parseAmount, todayIso, type QuickAddFormValues } from '@/lib/transaction-form'
 import { parseLocalDate, toIsoDate } from '@/lib/utils'
 
 interface AddTransactionModalProps {
-  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void
-}
-
-// The form no longer asks for category and type: the next step derives both
-// from title + notes on the server. Until that endpoint exists, every new
-// row is filed as a miscellaneous expense so the rest of the app keeps working.
-const PENDING_CLASSIFICATION: Pick<Transaction, 'category' | 'type'> = {
-  category: 'sonstiges',
-  type: 'expense',
+  /** Category and type are not part of the input; the server derives them. */
+  onAddTransaction: (transaction: QuickTransactionInput) => void
 }
 
 const emptyValues = (): QuickAddFormValues => ({
@@ -63,7 +56,6 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
 
   const handleSubmit = (values: QuickAddFormValues) => {
     onAddTransaction({
-      ...PENDING_CLASSIFICATION,
       title: values.title.trim(),
       amount: parseAmount(values.amount),
       date: values.date,
@@ -90,7 +82,8 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
         <DialogHeader>
           <DialogTitle>New transaction</DialogTitle>
           <DialogDescription>
-            A title and an amount are enough. The date defaults to today.
+            A title and an amount are enough. Category and type are detected automatically, the date
+            defaults to today.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

@@ -14,6 +14,19 @@ export interface TransactionQuery {
 
 export type NewTransaction = Omit<Transaction, 'id'>
 
+/** What the quick-add form collects; category and type are derived server-side. */
+export type QuickTransactionInput = Omit<NewTransaction, 'category' | 'type'>
+
+/** Answer of `POST /api/transactions/classify/`. */
+export interface Classification {
+  category: string
+  type: Transaction['type']
+  /** `null` when the model had no opinion and the server fell back to defaults. */
+  confidence: { category: number; type: number } | null
+  source: 'ai' | 'fallback'
+  model?: string
+}
+
 /** Plain array; used when the caller wants every row matching the query. */
 export async function fetchTransactions(query: TransactionQuery = {}): Promise<Transaction[]> {
   const response = await apiClient.get<Transaction[]>('/transactions/', { params: query })
@@ -42,6 +55,17 @@ export function fetchMonthTransactions(month: Date): Promise<Transaction[]> {
 export async function fetchRecentTransactions(count: number): Promise<Transaction[]> {
   const page = await fetchTransactionPage({}, count, 0)
   return page.results
+}
+
+/**
+ * Ask the server which category and type fit `title` + `notes`. Never throws
+ * on model trouble: the server answers with a fallback and `source: 'fallback'`.
+ */
+export async function classifyTransaction(
+  input: Pick<QuickTransactionInput, 'title' | 'notes'>,
+): Promise<Classification> {
+  const response = await apiClient.post<Classification>('/transactions/classify/', input)
+  return response.data
 }
 
 export async function createTransaction(transaction: NewTransaction): Promise<Transaction> {
