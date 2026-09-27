@@ -8,6 +8,7 @@ from .auth import GitHubLogin, GoogleLogin, MicrosoftLogin, SocialProviderMiscon
 from .classify import TransactionClassifyView
 from .health import HealthView
 from .insights import MonthInsightsView, YearInsightsView
+from .onboarding import OnboardingView
 from .summary import MonthlySummaryView
 from .transactions import TransactionDetailView, TransactionView
 from .users import UserMe
@@ -19,6 +20,7 @@ __all__ = [
     'MicrosoftLogin',
     'MonthInsightsView',
     'MonthlySummaryView',
+    'OnboardingView',
     'SocialProviderMisconfigured',
     'TransactionClassifyView',
     'TransactionDetailView',

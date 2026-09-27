@@ -9,10 +9,11 @@ class JWTSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     bio = serializers.SerializerMethodField()
+    needs_welcome = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'image', 'bio']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'image', 'bio', 'needs_welcome']
 
     def get_image(self, user):
         if not (hasattr(user, 'profile') and user.profile.avatar):
@@ -27,6 +28,15 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_bio(self, user):
         return getattr(user.profile, 'bio', '') if hasattr(user, 'profile') else ''
+
+    def get_needs_welcome(self, user):
+        """Show the welcome dialog once, and never to an account that already has data.
+
+        The transaction check keeps users from before this field existed
+        from being greeted like newcomers.
+        """
+        onboarded = hasattr(user, 'profile') and user.profile.onboarded_at is not None
+        return not onboarded and not user.transactions.exists()
 
 
 class MonthlySummarySerializer(serializers.Serializer):
@@ -109,6 +119,12 @@ class YearInsightsSerializer(serializers.Serializer):
     months = MonthTotalsSerializer(many=True)
     categories = CategoryComparisonSerializer(many=True)
     top_expenses = TransactionSerializer(many=True)
+
+
+class OnboardingSerializer(serializers.Serializer):
+    """Input of POST /onboarding/: whether to fill the account with sample data."""
+
+    sample_data = serializers.BooleanField(default=False)
 
 
 class ClassifyRequestSerializer(serializers.Serializer):
