@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { LayoutDashboard } from 'lucide-react'
-import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons'
+import { SocialLoginButtons } from '@/components/auth/social-login-buttons'
 
 export default function Login() {
   return (

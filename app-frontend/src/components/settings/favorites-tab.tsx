@@ -26,13 +26,13 @@ interface Template {
 const initialTemplates: Template[] = [
   {
     id: '1',
-    title: 'Wöchentlicher Einkauf',
-    category: 'Lebensmittel',
-    amount: '85,00 €',
+    title: 'Weekly groceries',
+    category: 'Groceries',
+    amount: '€85.00',
     type: 'expense',
   },
-  { id: '2', title: 'Monatsmiete', category: 'Wohnen', amount: '1.200,00 €', type: 'expense' },
-  { id: '3', title: 'Freelance Zahlung', category: 'Gehalt', amount: '800,00 €', type: 'income' },
+  { id: '2', title: 'Monthly rent', category: 'Housing', amount: '€1,200.00', type: 'expense' },
+  { id: '3', title: 'Freelance payment', category: 'Salary', amount: '€800.00', type: 'income' },
 ]
 
 interface TemplateFormValues {
@@ -50,15 +50,15 @@ export function FavoritesTab() {
       {
         id: crypto.randomUUID(),
         title: title.trim(),
-        category: 'Sonstiges',
-        amount: '0,00 €',
+        category: 'Miscellaneous',
+        amount: '€0.00',
         type: 'expense',
       },
     ])
     form.reset({ title: '' })
     toast({
-      title: 'Vorlage gespeichert',
-      description: 'Die neue Schnellvorlage wurde zu Ihren Favoriten hinzugefügt.',
+      title: 'Template saved',
+      description: 'The new quick template was added to your favorites.',
     })
   }
 
@@ -66,8 +66,8 @@ export function FavoritesTab() {
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <Card>
         <CardHeader>
-          <CardTitle>Schnellvorlagen</CardTitle>
-          <CardDescription>Häufige Transaktionen mit einem Klick vorausfüllen.</CardDescription>
+          <CardTitle>Quick templates</CardTitle>
+          <CardDescription>Prefill frequent transactions with one click.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {templates.map((template) => (
@@ -89,7 +89,7 @@ export function FavoritesTab() {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={`${template.title} löschen`}
+                aria-label={`Delete ${template.title}`}
                 onClick={() =>
                   setTemplates((current) => current.filter((item) => item.id !== template.id))
                 }
@@ -102,8 +102,8 @@ export function FavoritesTab() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Favorit hinzufügen</CardTitle>
-          <CardDescription>Erstellen Sie eine neue Vorlage für Ihre Transaktionen.</CardDescription>
+          <CardTitle>Add favorite</CardTitle>
+          <CardDescription>Create a new template for your transactions.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Form {...form}>
@@ -117,28 +117,28 @@ export function FavoritesTab() {
                 name="title"
                 rules={{
                   validate: (value) =>
-                    value.trim().length > 0 || 'Bitte geben Sie einen Namen für die Vorlage ein.',
+                    value.trim().length > 0 || 'Please enter a name for the template.',
                 }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name der Vorlage</FormLabel>
+                    <FormLabel>Template name</FormLabel>
                     <FormControl>
-                      <Input placeholder="z. B. Coffee to go" {...field} />
+                      <Input placeholder="e.g. Coffee to go" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <Button type="submit">
-                <Plus /> Vorlage erstellen
+                <Plus /> Create template
               </Button>
             </form>
           </Form>
           <Separator />
           <div className="rounded-lg bg-primary/5 p-4 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Tipp</p>
+            <p className="font-medium text-foreground">Tip</p>
             <p className="mt-1">
-              Sie können Schnellvorlagen später direkt im Transaktionsformular verwenden.
+              You will be able to use quick templates directly in the transaction form.
             </p>
           </div>
         </CardContent>

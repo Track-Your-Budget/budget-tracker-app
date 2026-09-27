@@ -21,19 +21,34 @@ services:
     restart: unless-stopped
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_SECRET: ${GOOGLE_SECRET}
+      DEBUG: ${DEBUG:-False}
+      # The browser talks to nginx on localhost:3000, which forwards Host as-is.
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      # OAuth redirect target; must match the providers and the VITE_*_LINK URLs.
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      # Plain HTTP on localhost: a Secure cookie would never be sent back.
+      JWT_AUTH_SECURE: "False"
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
+    volumes:
+      # Provider avatars; without this they vanish on every recreate.
+      - backend_media:/app/media
     depends_on:
       db:
         condition: service_healthy
     command: >
-      sh -c "python manage.py migrate &&
+      sh -c "python manage.py migrate --noinput &&
              gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    healthcheck:
+      # The image has no curl; the probe is the same endpoint Kubernetes uses.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
 
   frontend:
     build:
@@ -41,8 +56,15 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+    environment:
+      # Written into env-config.js by the container entrypoint at start.
+      VITE_GOOGLE_LINK: ${VITE_GOOGLE_LINK:-}
+      VITE_GITHUB_LINK: ${VITE_GITHUB_LINK:-}
+      VITE_MICROSOFT_LINK: ${VITE_MICROSOFT_LINK:-}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   postgres_data:
+  backend_media:

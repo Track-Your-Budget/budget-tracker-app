@@ -37,6 +37,11 @@ ALLOWED_HOSTS = [
     if host.strip()  # Ensure no empty strings are included
 ]
 
+# Cloudflare terminates TLS and forwards the original scheme to the app via
+# X-Forwarded-Proto. Without this, Django thinks the request is plain HTTP and
+# the admin CSRF check rejects the browser's HTTPS Origin header.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 # Application definition
 
@@ -156,6 +161,15 @@ _frontend_origin = _origin(FRONTEND_URL)
 if _frontend_origin and _frontend_origin not in CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS.append(_frontend_origin)
 
+# In prod, browsers submit HTTPS Origins for POST requests. Django must trust
+# the HTTPS origins we actually serve, while leaving local http://localhost
+# entries alone for development.
+CSRF_TRUSTED_ORIGINS = [
+    origin.rstrip('/')
+    for origin in CORS_ALLOWED_ORIGINS
+    if origin.startswith('https://')
+]
+
 ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
@@ -235,8 +249,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Logging: make the `api` logger emit INFO to the console so we can see
-# the full social-auth provider payload (see api/signals.py).
+# Logging: make the `api` logger emit INFO and above to the console, so the
+# OAuth exchange errors (api/views/auth.py) and avatar download failures
+# (api/signals.py) show up in the pod logs.
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

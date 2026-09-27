@@ -1,6 +1,6 @@
-import { GoogleLoginButton } from './GoogleLoginButton'
-import { GithubLoginButton } from './GithubLoginButton'
-import { MicrosoftLoginButton } from './MicrosoftLoginButton'
+import { GoogleLoginButton } from './google-login-button'
+import { GithubLoginButton } from './github-login-button'
+import { MicrosoftLoginButton } from './microsoft-login-button'
 
 /**
  * Renders every configured social login button. Add new providers by

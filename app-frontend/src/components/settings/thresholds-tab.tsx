@@ -6,26 +6,23 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
+import { formatCurrency } from '@/lib/format'
 
 interface Threshold {
   id: string
   category: string
+  /** Monthly limit as typed into the input. */
   limit: string
-  spent: string
+  spent: number
   color: string
 }
 
 const initialThresholds: Threshold[] = [
-  { id: '1', category: 'Lebensmittel', limit: '450', spent: '312,40', color: 'bg-primary' },
-  { id: '2', category: 'Unterhaltung', limit: '150', spent: '118,90', color: 'bg-chart-2' },
-  { id: '3', category: 'Transport', limit: '220', spent: '89,00', color: 'bg-chart-3' },
-  { id: '4', category: 'Wohnen', limit: '1.300', spent: '1.200,00', color: 'bg-chart-4' },
+  { id: '1', category: 'Groceries', limit: '450', spent: 312.4, color: 'bg-primary' },
+  { id: '2', category: 'Entertainment', limit: '150', spent: 118.9, color: 'bg-chart-2' },
+  { id: '3', category: 'Transport', limit: '220', spent: 89, color: 'bg-chart-3' },
+  { id: '4', category: 'Housing', limit: '1300', spent: 1200, color: 'bg-chart-4' },
 ]
-
-// German number strings use "." as thousands separator and "," as decimal.
-function parseGermanNumber(value: string): number {
-  return Number(value.replace(/\./g, '').replace(',', '.'))
-}
 
 export function ThresholdsTab() {
   const [thresholds, setThresholds] = useState<Threshold[]>(initialThresholds)
@@ -37,8 +34,8 @@ export function ThresholdsTab() {
 
   const saveThresholds = () =>
     toast({
-      title: 'Limits gespeichert',
-      description: 'Ihre Kategorie-Limits wurden aktualisiert.',
+      title: 'Limits saved',
+      description: 'Your category limits were updated.',
     })
 
   return (
@@ -46,41 +43,42 @@ export function ThresholdsTab() {
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle>Kategorie-Limits</CardTitle>
+            <CardTitle>Category limits</CardTitle>
             <CardDescription>
-              Definieren Sie monatliche Budgets und erhalten Sie eine Warnung vor dem Limit.
+              Set monthly budgets and get a warning before you reach the limit.
             </CardDescription>
           </div>
           <Button onClick={saveThresholds}>
-            <Save /> Limits speichern
+            <Save /> Save limits
           </Button>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           {thresholds.map((threshold) => {
-            const progress = Math.min(
-              (parseGermanNumber(threshold.spent) / parseGermanNumber(threshold.limit)) * 100,
-              100,
-            )
+            const limit = Number(threshold.limit)
+            const progress = limit > 0 ? Math.min((threshold.spent / limit) * 100, 100) : 0
             return (
               <div key={threshold.id} className="flex flex-col gap-3 rounded-xl border p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-medium">{threshold.category}</p>
                     <p className="text-sm text-muted-foreground">
-                      {threshold.spent} € von {threshold.limit} € verwendet
+                      {formatCurrency(threshold.spent)} of {formatCurrency(limit)} used
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Label htmlFor={`limit-${threshold.id}`} className="sr-only">
-                      Limit für {threshold.category}
+                      Limit for {threshold.category}
                     </Label>
                     <Input
                       id={`limit-${threshold.id}`}
+                      type="number"
+                      min="0"
+                      step="1"
                       className="w-28 text-right"
                       value={threshold.limit}
                       onChange={(event) => updateThreshold(threshold.id, event.target.value)}
                     />
-                    <span className="text-sm text-muted-foreground">€ / Monat</span>
+                    <span className="text-sm text-muted-foreground">€ / month</span>
                   </div>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -98,16 +96,12 @@ export function ThresholdsTab() {
         <CardContent className="flex items-start gap-3 p-5">
           <BellRing className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <p className="font-medium">Benachrichtigungen aktiv</p>
+            <p className="font-medium">Notifications on</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Du erhältst eine Warnung, sobald 80 % eines Kategorie-Limits erreicht sind.
+              You will be warned as soon as 80 % of a category limit is reached.
             </p>
           </div>
-          <Switch
-            defaultChecked
-            className="ml-auto"
-            aria-label="Schwellenwert-Benachrichtigungen"
-          />
+          <Switch defaultChecked className="ml-auto" aria-label="Limit notifications" />
         </CardContent>
       </Card>
     </div>

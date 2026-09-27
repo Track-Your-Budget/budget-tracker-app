@@ -4,7 +4,7 @@ import { ArrowLeft, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface PageHeaderProps {
-  /** Small icon + label line above the title, e.g. "Kontoeinstellungen". */
+  /** Small icon + label line above the title, e.g. "Account settings". */
   eyebrow: string
   eyebrowIcon: LucideIcon
   title: string
@@ -24,7 +24,7 @@ export function PageHeader({
   return (
     <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
-        <Button asChild variant="outline" size="icon" aria-label="Zurück zum Dashboard">
+        <Button asChild variant="outline" size="icon" aria-label="Back to dashboard">
           <Link to="/">
             <ArrowLeft />
           </Link>

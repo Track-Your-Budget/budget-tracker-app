@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { TransactionsHeader } from '@/components/transactions/transactions-header'
+import { AddTransactionModal } from '@/components/budget/add-transaction-modal'
 import { TransactionFilters } from '@/components/budget/transaction-filters'
 import { TransactionList } from '@/components/budget/transaction-list'
 import { TransactionDetailsModal } from '@/components/budget/transaction-details-modal'
@@ -33,6 +34,8 @@ export default function Transactions() {
   const [hasMore, setHasMore] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  // Bumped after a create so the first-page effect re-runs with the same filters.
+  const [reloadToken, setReloadToken] = useState(0)
   const {
     selected: selectedTransaction,
     setSelected: setSelectedTransaction,
@@ -49,8 +52,9 @@ export default function Transactions() {
     return () => window.clearTimeout(handle)
   }, [searchInput])
 
-  // First page: re-run whenever a filter changes and drop what was loaded
-  // before, because the old offsets mean nothing against a new result set.
+  // First page: re-run whenever a filter changes (or a row was created) and
+  // drop what was loaded before, because the old offsets mean nothing against
+  // a new result set.
   useEffect(() => {
     let cancelled = false
     const loadFirstPage = async () => {
@@ -65,8 +69,8 @@ export default function Transactions() {
         if (cancelled) return
         console.error('Failed to load transactions:', error)
         toast({
-          title: 'Fehler',
-          description: 'Transaktionen konnten nicht geladen werden.',
+          title: 'Loading failed',
+          description: 'The transactions could not be loaded.',
           variant: 'destructive',
         })
       } finally {
@@ -77,7 +81,7 @@ export default function Transactions() {
     return () => {
       cancelled = true
     }
-  }, [filters, toast])
+  }, [filters, reloadToken, toast])
 
   const loadMore = useCallback(async () => {
     setIsLoadingMore(true)
@@ -98,8 +102,8 @@ export default function Transactions() {
     } catch (error) {
       console.error('Failed to load more transactions:', error)
       toast({
-        title: 'Fehler',
-        description: 'Weitere Transaktionen konnten nicht geladen werden.',
+        title: 'Loading failed',
+        description: 'More transactions could not be loaded.',
         variant: 'destructive',
       })
     } finally {
@@ -108,6 +112,9 @@ export default function Transactions() {
   }, [filters, transactions.length, toast])
 
   const mutations = useTransactionMutations({
+    // Whether the new row matches the active filters (search, period, ...) is
+    // the server's call, so re-read the first page instead of guessing here.
+    onCreated: useCallback(() => setReloadToken((n) => n + 1), []),
     onUpdated: useCallback(
       (saved: Transaction) => {
         setTransactions((prev) => sortNewestFirst(prev.map((t) => (t.id === saved.id ? saved : t))))
@@ -132,13 +139,13 @@ export default function Transactions() {
 
   const filtersActive = hasActiveFilters({ ...filters, search: searchInput })
   const listTitle = isLoading
-    ? 'Transaktionen'
-    : `Transaktionen (${transactions.length} von ${totalCount})`
+    ? 'Transactions'
+    : `Transactions (${transactions.length} of ${totalCount})`
 
   return (
     <div className="bg-background">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <TransactionsHeader />
+        <TransactionsHeader aside={<AddTransactionModal onAddTransaction={mutations.create} />} />
 
         <TransactionFilters
           filters={filters}
@@ -156,16 +163,14 @@ export default function Transactions() {
           groupByMonth
           onSelectTransaction={openDetails}
           emptyMessage={
-            filtersActive
-              ? 'Keine Transaktionen für die gewählten Filter gefunden'
-              : 'Noch keine Transaktionen vorhanden'
+            filtersActive ? 'No transactions match the selected filters' : 'No transactions yet'
           }
           footer={
             hasMore ? (
               <div className="mt-6 flex justify-center">
                 <Button variant="outline" onClick={loadMore} disabled={isLoadingMore}>
                   {isLoadingMore ? <Spinner /> : <ChevronDown />}
-                  {`${PAGE_SIZE} weitere laden`}
+                  {`Load ${PAGE_SIZE} more`}
                 </Button>
               </div>
             ) : null

@@ -30,7 +30,7 @@ export function CategoryBreakdown({ transactions, isLoading }: CategoryBreakdown
     return (
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle>Ausgaben nach Kategorie</CardTitle>
+          <CardTitle>Expenses by category</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -52,11 +52,11 @@ export function CategoryBreakdown({ transactions, isLoading }: CategoryBreakdown
   return (
     <Card className="border-border/50">
       <CardHeader>
-        <CardTitle>Ausgaben nach Kategorie</CardTitle>
+        <CardTitle>Expenses by category</CardTitle>
       </CardHeader>
       <CardContent>
         {sortedCategories.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">Noch keine Ausgaben vorhanden</p>
+          <p className="text-center text-muted-foreground py-8">No expenses yet</p>
         ) : (
           <div className="space-y-4">
             {sortedCategories.map(([category, amount]) => {
