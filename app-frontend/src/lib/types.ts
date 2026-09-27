@@ -22,6 +22,8 @@ export interface CurrentUser {
   email: string
   image: string | null
   bio: string
+  /** True until the welcome dialog was answered; never true for an account with transactions. */
+  needs_welcome: boolean
 }
 
 export const CATEGORIES = [

@@ -5,7 +5,10 @@ tests and anything else that predates the split.
 """
 
 from .auth import GitHubLogin, GoogleLogin, MicrosoftLogin, SocialProviderMisconfigured
+from .classify import TransactionClassifyView
 from .health import HealthView
+from .insights import MonthInsightsView, YearInsightsView
+from .onboarding import OnboardingView
 from .summary import MonthlySummaryView
 from .transactions import TransactionDetailView, TransactionView
 from .users import UserMe
@@ -15,9 +18,13 @@ __all__ = [
     'GoogleLogin',
     'HealthView',
     'MicrosoftLogin',
+    'MonthInsightsView',
     'MonthlySummaryView',
+    'OnboardingView',
     'SocialProviderMisconfigured',
+    'TransactionClassifyView',
     'TransactionDetailView',
     'TransactionView',
     'UserMe',
+    'YearInsightsView',
 ]

@@ -84,6 +84,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    # Only views that opt in via throttle_scope are limited. Counted in the
+    # default cache, i.e. per gunicorn worker; good enough to stop a runaway
+    # client, not a hard global quota.
+    'DEFAULT_THROTTLE_RATES': {
+        'classify': '30/min',
+    },
 }
 
 REST_AUTH = {
@@ -134,6 +140,12 @@ SOCIALACCOUNT_AUTO_SIGNUP = True
 
 
 FRONTEND_URL = os.getenv('FRONTEND_URL')
+
+# TypeSafe System One (Jev) classifies new transactions into category and
+# type. Without a key the endpoint answers with a fallback instead of failing.
+# Pin the model version once thresholds are tuned: "jev-latest" moves silently.
+TYPESAFE_API_KEY = os.getenv('TYPESAFE_API_KEY')
+TYPESAFE_MODEL = os.getenv('TYPESAFE_MODEL', 'jev-latest')
 
 SOCIAL_AUTH_REDIRECT_URL = FRONTEND_URL
 

@@ -28,6 +28,8 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       # Plain HTTP on localhost: a Secure cookie would never be sent back.
       JWT_AUTH_SECURE: "False"
+      # Optional: enables automatic category/type detection for new transactions.
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

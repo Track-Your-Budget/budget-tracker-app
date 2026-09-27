@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Plus } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -19,50 +20,39 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Plus } from 'lucide-react'
-import { CATEGORIES, type Transaction } from '@/lib/types'
-import { Textarea } from '@/components/ui/textarea'
-import { todayIso, type TransactionFormValues } from '@/lib/transaction-form'
+import { DateField, NotesField } from '@/components/budget/transaction-form-fields'
+import type { QuickTransactionInput } from '@/lib/api/transactions'
+import { parseAmount, todayIso, type QuickAddFormValues } from '@/lib/transaction-form'
 
 interface AddTransactionModalProps {
-  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void
+  /** Category and type are not part of the input; the server derives them. */
+  onAddTransaction: (transaction: QuickTransactionInput) => void
 }
 
-const emptyTransaction = (): TransactionFormValues => ({
-  type: 'expense',
+const emptyValues = (): QuickAddFormValues => ({
   title: '',
   amount: '',
-  category: '',
   date: todayIso(),
   notes: '',
 })
 
 export function AddTransactionModal({ onAddTransaction }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false)
-  const form = useForm<TransactionFormValues>({ defaultValues: emptyTransaction() })
+  const form = useForm<QuickAddFormValues>({ defaultValues: emptyValues() })
 
-  const handleSubmit = (values: TransactionFormValues) => {
+  const handleSubmit = (values: QuickAddFormValues) => {
     onAddTransaction({
       title: values.title.trim(),
-      notes: values.notes,
-      amount: Number.parseFloat(values.amount),
-      category: values.category,
+      amount: parseAmount(values.amount),
       date: values.date,
-      type: values.type,
+      notes: values.notes.trim(),
     })
-    form.reset(emptyTransaction())
+    form.reset(emptyValues())
     setOpen(false)
   }
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) form.reset(emptyTransaction())
+    if (!next) form.reset(emptyValues())
     setOpen(next)
   }
 
@@ -77,32 +67,15 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>New transaction</DialogTitle>
-          <DialogDescription>Add a new transaction to your budget.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} noValidate>
+          {/* key resets the collapsed notes field together with the values */}
+          <form
+            key={open ? 'open' : 'closed'}
+            onSubmit={form.handleSubmit(handleSubmit)}
+            noValidate
+          >
             <div className="grid gap-4 py-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="income">Income</SelectItem>
-                        <SelectItem value="expense">Expense</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="title"
@@ -113,7 +86,7 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Salary, Groceries…" {...field} />
+                      <Input placeholder="e.g. Groceries, Salary…" autoFocus {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -125,39 +98,16 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                 rules={{
                   required: 'Please enter an amount.',
                   validate: (value) =>
-                    Number.parseFloat(value) > 0 || 'The amount must be greater than 0.',
+                    parseAmount(value) > 0 || 'The amount must be greater than 0.',
                 }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Amount (€)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
+                      {/* Text + decimal keyboard instead of type="number": accepts
+                          "12,50" as well as "12.50" and never scrolls the value. */}
+                      <Input inputMode="decimal" placeholder="0.00" {...field} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="category"
-                rules={{ required: 'Please select a category.' }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {CATEGORIES.map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -165,32 +115,15 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
               <FormField
                 control={form.control}
                 name="date"
-                rules={{ required: 'Please select a date.' }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
+                    <DateField value={field.value} onChange={field.onChange} />
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Notes <span className="text-muted-foreground text-xs">(optional)</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Additional information…" rows={3} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <NotesField control={form.control} name="notes" />
             </div>
             <DialogFooter className="grid grid-cols-2 gap-2">
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
