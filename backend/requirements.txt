@@ -11,3 +11,4 @@ PyJWT>=2.0.0
 cryptography
 gunicorn>=21.0.0
 pillow
+typesafe-sdk>=0.7,<1
