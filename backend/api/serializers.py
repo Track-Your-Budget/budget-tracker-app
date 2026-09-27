@@ -76,8 +76,12 @@ class PeriodTotalsSerializer(serializers.Serializer):
     count = serializers.IntegerField()
 
 
-class PreviousPeriodSerializer(PeriodTotalsSerializer):
+class MonthTotalsSerializer(PeriodTotalsSerializer):
     month = serializers.CharField()
+
+
+class YearTotalsSerializer(PeriodTotalsSerializer):
+    year = serializers.CharField()
 
 
 class CategoryComparisonSerializer(serializers.Serializer):
@@ -91,7 +95,18 @@ class MonthInsightsSerializer(serializers.Serializer):
 
     month = serializers.CharField()
     totals = PeriodTotalsSerializer()
-    previous = PreviousPeriodSerializer()
+    previous = MonthTotalsSerializer()
+    categories = CategoryComparisonSerializer(many=True)
+    top_expenses = TransactionSerializer(many=True)
+
+
+class YearInsightsSerializer(serializers.Serializer):
+    """Answer of GET /insights/year/: like the month, plus one entry per month."""
+
+    year = serializers.CharField()
+    totals = PeriodTotalsSerializer()
+    previous = YearTotalsSerializer()
+    months = MonthTotalsSerializer(many=True)
     categories = CategoryComparisonSerializer(many=True)
     top_expenses = TransactionSerializer(many=True)
 

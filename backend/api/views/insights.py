@@ -1,5 +1,5 @@
-"""One month at a glance: totals, spending per category and the largest
-expenses, each next to the same number for the month before.
+"""One month or one year at a glance: totals, spending per category and
+the largest expenses, each next to the same number for the period before.
 
 The server aggregates, the client interprets. Percentages, deltas and the
 sentences on the insights page are derived in the SPA from the raw amounts
@@ -11,6 +11,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db.models import Count, Q, Sum
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -19,7 +20,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..models import Transaction
-from ..serializers import MonthInsightsSerializer
+from ..serializers import MonthInsightsSerializer, YearInsightsSerializer
 
 INCOME = Transaction.TransactionType.INCOME
 EXPENSE = Transaction.TransactionType.EXPENSE
@@ -44,6 +45,15 @@ def parse_month(raw):
         raise ValidationError({'month': 'Use the format YYYY-MM.'})
 
 
+def parse_year(raw):
+    """``'2026'`` → ``2026``; empty → the current year; else 400."""
+    if not raw:
+        return timezone.localdate().year
+    if not (raw.isdigit() and len(raw) == 4):
+        raise ValidationError({'year': 'Use the format YYYY.'})
+    return int(raw)
+
+
 def previous_month(first_day):
     """First day of the month before the one starting on ``first_day``."""
     return (first_day - timedelta(days=1)).replace(day=1)
@@ -53,6 +63,16 @@ def month_rows(user, first_day):
     return user.transactions.filter(date__year=first_day.year, date__month=first_day.month)
 
 
+def year_rows(user, year):
+    return user.transactions.filter(date__year=year)
+
+
+def _totals_from(income, expense, count):
+    income = income or ZERO
+    expense = expense or ZERO
+    return {'income': income, 'expense': expense, 'balance': income - expense, 'count': count}
+
+
 def totals(rows):
     """Income, expense, their difference and the row count, in one query."""
     agg = rows.aggregate(
@@ -60,14 +80,36 @@ def totals(rows):
         expense=Sum('amount', filter=Q(type=EXPENSE)),
         count=Count('id'),
     )
-    income = agg['income'] or ZERO
-    expense = agg['expense'] or ZERO
-    return {
-        'income': income,
-        'expense': expense,
-        'balance': income - expense,
-        'count': agg['count'],
-    }
+    return _totals_from(agg['income'], agg['expense'], agg['count'])
+
+
+def totals_per_month(rows, year):
+    """Twelve entries, January to December, zeros for months without rows.
+
+    One GROUP BY query; the chart needs every month present so its axis
+    does not shift depending on where the data starts.
+    """
+    grouped = (
+        rows.annotate(month=TruncMonth('date'))
+        .values('month')
+        .annotate(
+            income=Sum('amount', filter=Q(type=INCOME)),
+            expense=Sum('amount', filter=Q(type=EXPENSE)),
+            count=Count('id'),
+        )
+        .order_by('month')
+    )
+    by_month = {row['month'].month: row for row in grouped}
+    result = []
+    for month in range(1, 13):
+        row = by_month.get(month)
+        entry = (
+            _totals_from(row['income'], row['expense'], row['count'])
+            if row
+            else _totals_from(ZERO, ZERO, 0)
+        )
+        result.append({'month': f'{year:04d}-{month:02d}', **entry})
+    return result
 
 
 def expense_by_category(rows):
@@ -125,3 +167,31 @@ class MonthInsightsView(APIView):
             'top_expenses': top_expenses,
         }
         return Response(MonthInsightsSerializer(payload).data, status=status.HTTP_200_OK)
+
+
+class YearInsightsView(APIView):
+    """GET /insights/year/?year=YYYY (defaults to the current year)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        year = parse_year(request.query_params.get('year'))
+
+        current = year_rows(request.user, year)
+        previous = year_rows(request.user, year - 1)
+
+        top_expenses = (
+            current.filter(type=EXPENSE).order_by('-amount', '-date', '-id')[:TOP_EXPENSES]
+        )
+
+        payload = {
+            'year': f'{year:04d}',
+            'totals': totals(current),
+            'previous': {'year': f'{year - 1:04d}', **totals(previous)},
+            'months': totals_per_month(current, year),
+            'categories': compare_categories(
+                expense_by_category(current), expense_by_category(previous)
+            ),
+            'top_expenses': top_expenses,
+        }
+        return Response(YearInsightsSerializer(payload).data, status=status.HTTP_200_OK)
