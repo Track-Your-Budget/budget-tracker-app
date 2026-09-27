@@ -62,6 +62,40 @@ class TransactionSerializer(serializers.ModelSerializer):
         return Transaction.objects.create(user=user, **validated_data)
 
 
+class MoneyField(serializers.DecimalField):
+    """Two-place decimal rendered as a JSON number, like Transaction.amount."""
+
+    def __init__(self, **kwargs):
+        super().__init__(max_digits=12, decimal_places=2, coerce_to_string=False, **kwargs)
+
+
+class PeriodTotalsSerializer(serializers.Serializer):
+    income = MoneyField()
+    expense = MoneyField()
+    balance = MoneyField()
+    count = serializers.IntegerField()
+
+
+class PreviousPeriodSerializer(PeriodTotalsSerializer):
+    month = serializers.CharField()
+
+
+class CategoryComparisonSerializer(serializers.Serializer):
+    category = serializers.CharField()
+    amount = MoneyField()
+    previous_amount = MoneyField()
+
+
+class MonthInsightsSerializer(serializers.Serializer):
+    """Answer of GET /insights/month/; see views/insights.py for the shape."""
+
+    month = serializers.CharField()
+    totals = PeriodTotalsSerializer()
+    previous = PreviousPeriodSerializer()
+    categories = CategoryComparisonSerializer(many=True)
+    top_expenses = TransactionSerializer(many=True)
+
+
 class ClassifyRequestSerializer(serializers.Serializer):
     """Input of POST /transactions/classify/: the free text the user typed."""
 

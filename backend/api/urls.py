@@ -6,6 +6,7 @@ from .views import (
     GoogleLogin,
     HealthView,
     MicrosoftLogin,
+    MonthInsightsView,
     MonthlySummaryView,
     TransactionClassifyView,
     TransactionDetailView,
@@ -33,4 +34,6 @@ urlpatterns = [
     path('transactions/classify/', TransactionClassifyView.as_view(), name='transaction_classify'),
     path('transactions/<int:pk>/', TransactionDetailView.as_view(), name='transaction_detail'),
     path('monthly-summary/', MonthlySummaryView.as_view(), name='monthly_summary'),
+    # One month compared with the one before; the insights page.
+    path('insights/month/', MonthInsightsView.as_view(), name='month_insights'),
 ]
