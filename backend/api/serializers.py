@@ -60,3 +60,10 @@ class TransactionSerializer(serializers.ModelSerializer):
         # Inject the authenticated user from the request context
         user = self.context['request'].user
         return Transaction.objects.create(user=user, **validated_data)
+
+
+class ClassifyRequestSerializer(serializers.Serializer):
+    """Input of POST /transactions/classify/: the free text the user typed."""
+
+    title = serializers.CharField(max_length=255)
+    notes = serializers.CharField(required=False, allow_blank=True, default='')
