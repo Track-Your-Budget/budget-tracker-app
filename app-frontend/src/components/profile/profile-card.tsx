@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { formatUserName } from '@/lib/format'
 import type { CurrentUser } from '@/lib/types'
 
 interface ProfileCardProps {
@@ -39,11 +40,7 @@ export function ProfileCard({ user, isLoading }: ProfileCardProps) {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <div className="text-xl font-semibold">
-                  {`${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() ||
-                    user.username ||
-                    '—'}
-                </div>
+                <div className="text-xl font-semibold">{formatUserName(user) || '—'}</div>
                 <div className="text-sm text-muted-foreground">ID: {user.id}</div>
               </div>
             </div>
@@ -54,14 +51,14 @@ export function ProfileCard({ user, isLoading }: ProfileCardProps) {
               <div className="space-y-1">
                 <dt className="flex items-center gap-2 text-sm text-muted-foreground">
                   <UserIcon className="h-4 w-4" />
-                  Benutzername
+                  Username
                 </dt>
                 <dd className="text-sm font-medium break-all">{user.username || '—'}</dd>
               </div>
               <div className="space-y-1">
                 <dt className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4" />
-                  E-Mail
+                  Email
                 </dt>
                 <dd className="text-sm font-medium break-all">{user.email || '—'}</dd>
               </div>
@@ -72,7 +69,7 @@ export function ProfileCard({ user, isLoading }: ProfileCardProps) {
             </dl>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">Keine Profildaten verfügbar.</p>
+          <p className="text-sm text-muted-foreground">No profile data available.</p>
         )}
       </CardContent>
     </Card>

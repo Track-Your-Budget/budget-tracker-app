@@ -72,7 +72,7 @@ stages:
 - stage: Deploy
   displayName: 'Build & Push Docker Images'
   dependsOn: Test
-  # Wird ausgeführt, wenn Tests bestanden sind UND es main oder test ist
+  # Runs only when the Test stage passed AND the branch is main or test
   condition: and(succeeded(), in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/test'))
   jobs:
   - deployment: Push_Images_Staging
@@ -148,29 +148,29 @@ stages:
     steps:
     - checkout: none
     - script: |
-        # 1. Manifest-Repo klonen
+        # 1. Clone the manifest repo
         REPO_URL="https://$(MANIFEST_REPO_PAT)@dev.azure.com/edodevops0169/TackYourBudget/_git/app-manifests"
         git clone "$REPO_URL" manifests
         cd manifests
 
-        # 2. Umgebung anhand des Branches bestimmen
+        # 2. Pick the overlay from the branch
         if [ "$(Build.SourceBranch)" == "refs/heads/main" ]; then
           OVERLAY_DIR="overlays/prod"
         elif [ "$(Build.SourceBranch)" == "refs/heads/test" ]; then
           OVERLAY_DIR="overlays/test"
         else
-          echo "Kein valider Deployment-Branch. Abbruch."
+          echo "Not a deployment branch, nothing to do."
           exit 0
         fi
 
-        echo "Aktualisiere Manifeste in: $OVERLAY_DIR"
+        echo "Updating manifests in: $OVERLAY_DIR"
         cd $OVERLAY_DIR
 
-        # 3. Kustomize nutzen statt sed
+        # 3. Let kustomize rewrite the image tags instead of sed
         kustomize edit set image eduardgohl/budget-tracker-frontend=eduardgohl/budget-tracker-frontend:$(Build.BuildId)
         kustomize edit set image eduardgohl/budget-tracker-backend=eduardgohl/budget-tracker-backend:$(Build.BuildId)
 
-        # 4. Commit & Push
+        # 4. Commit and push
         cd ../..
         git config user.email "pipeline@testops"
         git config user.name "Azure Pipeline"

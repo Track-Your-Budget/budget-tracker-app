@@ -1,20 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import axios from 'axios'
-import apiClient, {
-  refreshAccessToken,
-  setAccessToken,
-  setUnauthorizedHandler,
-} from '@/lib/apiClient'
+import { refreshAccessToken, setAccessToken, setUnauthorizedHandler } from '@/lib/api-client'
+import { fetchCurrentUser } from '@/lib/api/users'
 import { loginWithSocialProvider, PROVIDER_LABELS, SocialLoginError } from '@/lib/auth/api'
 import { captureOAuthCallbackOnce } from '@/lib/auth/oauth-callback'
+import { formatUserName } from '@/lib/format'
+import type { CurrentUser } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
-
-interface CurrentUserSummary {
-  first_name?: string
-  last_name?: string
-  username?: string
-  email?: string
-}
 
 // Captured once, at module load, before React renders (see oauth-callback.ts).
 const capturedOAuth = captureOAuthCallbackOnce()
@@ -23,32 +15,38 @@ export interface AuthSession {
   isAuthenticated: boolean
   /** True while bootstrapping a session or exchanging a social-login code. */
   isPending: boolean
+  /** The signed-in user, fetched once per session. Null while loading or signed out. */
+  user: CurrentUser | null
+  /** True while `user` is being fetched after sign-in. */
+  isUserLoading: boolean
+  /** Display name derived from `user`; undefined until the user is loaded. */
   userName: string | undefined
   logout: () => Promise<void>
 }
 
 /**
  * Owns the access token lifecycle: silent refresh on load, the social-login
- * code exchange, the signed-in user's display name, and logout.
+ * code exchange, the signed-in user, and logout. Consumed through
+ * `useSession()` (see use-session.ts) so it is created exactly once.
  */
 export function useAuthSession(): AuthSession {
   const { toast } = useToast()
   const [authToken, setAuthToken] = useState<string | null>(null)
-  const [userName, setUserName] = useState<string | undefined>(undefined)
+  const [user, setUser] = useState<CurrentUser | null>(null)
+  const [userLoadFailed, setUserLoadFailed] = useState(false)
   const [isPending, setIsPending] = useState(true)
   const oauthHandled = useRef(false)
 
   const applyAccessToken = useCallback((token: string | null) => {
     setAccessToken(token)
     setAuthToken(token)
+    if (!token) setUser(null)
+    setUserLoadFailed(false)
   }, [])
 
   // When apiClient cannot refresh, clear the session; routing bounces to /login.
   useEffect(() => {
-    setUnauthorizedHandler(() => {
-      applyAccessToken(null)
-      setUserName(undefined)
-    })
+    setUnauthorizedHandler(() => applyAccessToken(null))
   }, [applyAccessToken])
 
   // Bootstrap: if a refresh cookie is present, silently get a fresh access token.
@@ -81,7 +79,7 @@ export function useAuthSession(): AuthSession {
     const providerLabel = provider ? PROVIDER_LABELS[provider] : 'Google'
 
     const showLoginFailed = (description: string) =>
-      toast({ title: 'Anmeldung fehlgeschlagen', description, variant: 'destructive' })
+      toast({ title: 'Sign-in failed', description, variant: 'destructive' })
 
     // Async IIFE so every setState runs off the effect body
     // (satisfies react-hooks/set-state-in-effect).
@@ -91,7 +89,7 @@ export function useAuthSession(): AuthSession {
           `${providerLabel} login failed:`,
           capturedOAuth.error ?? 'Missing authorization response.',
         )
-        showLoginFailed(`Fehler beim Anmeldedienst ${providerLabel}.`)
+        showLoginFailed(`Error signing in with ${providerLabel}.`)
         return
       }
 
@@ -106,9 +104,7 @@ export function useAuthSession(): AuthSession {
           err instanceof SocialLoginError ? err.detail : err,
         )
         showLoginFailed(
-          err instanceof SocialLoginError
-            ? err.message
-            : `Fehler beim Anmeldedienst ${providerLabel}.`,
+          err instanceof SocialLoginError ? err.message : `Error signing in with ${providerLabel}.`,
         )
       }
     }
@@ -116,25 +112,32 @@ export function useAuthSession(): AuthSession {
     exchange().finally(() => setIsPending(false))
   }, [applyAccessToken, toast])
 
-  // Load the signed-in user's display name once we have a session. userName
-  // is reset wherever authToken is cleared, so no cleanup setState is needed.
+  // Load the signed-in user once we have a session. `user` is reset wherever
+  // the token is cleared, so no cleanup setState is needed.
   useEffect(() => {
     if (!authToken) return
     let cancelled = false
-    apiClient
-      .get<CurrentUserSummary>('/users/me/')
-      .then((res) => {
-        if (cancelled) return
-        const fullName = `${res.data.first_name ?? ''} ${res.data.last_name ?? ''}`.trim()
-        setUserName(fullName || res.data.username || undefined)
+    fetchCurrentUser()
+      .then((loaded) => {
+        if (!cancelled) setUser(loaded)
       })
-      .catch(() => {
-        // 401s are already handled by the apiClient interceptor.
+      .catch((err) => {
+        if (cancelled) return
+        // A 401 means the refresh failed too; the interceptor already cleared
+        // the session, so there is nothing to report here.
+        if (axios.isAxiosError(err) && err.response?.status === 401) return
+        console.error('Failed to load current user:', err)
+        setUserLoadFailed(true)
+        toast({
+          title: 'Profile could not be loaded',
+          description: err instanceof Error ? err.message : String(err),
+          variant: 'destructive',
+        })
       })
     return () => {
       cancelled = true
     }
-  }, [authToken])
+  }, [authToken, toast])
 
   const logout = useCallback(async () => {
     try {
@@ -144,8 +147,16 @@ export function useAuthSession(): AuthSession {
       // Ignore: local state is cleared regardless.
     }
     applyAccessToken(null)
-    setUserName(undefined)
   }, [applyAccessToken])
 
-  return { isAuthenticated: Boolean(authToken), isPending, userName, logout }
+  const isAuthenticated = Boolean(authToken)
+
+  return {
+    isAuthenticated,
+    isPending,
+    user,
+    isUserLoading: isAuthenticated && user === null && !userLoadFailed,
+    userName: user ? formatUserName(user) : undefined,
+    logout,
+  }
 }

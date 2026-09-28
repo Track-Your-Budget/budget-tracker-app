@@ -9,7 +9,7 @@ interface TransactionListProps {
   transactions: Transaction[]
   isLoading?: boolean
   onSelectTransaction?: (transaction: Transaction) => void
-  /** Card heading. Defaults to "Letzte Transaktionen". */
+  /** Card heading. Defaults to "Recent transactions". */
   title?: string
   /** Rendered on the right side of the card header (e.g. a "view all" link). */
   headerAction?: ReactNode
@@ -50,10 +50,10 @@ export function TransactionList({
   transactions,
   isLoading,
   onSelectTransaction,
-  title = 'Letzte Transaktionen',
+  title = 'Recent transactions',
   headerAction,
   groupByMonth = false,
-  emptyMessage = 'Noch keine Transaktionen vorhanden',
+  emptyMessage = 'No transactions yet',
   footer,
 }: TransactionListProps) {
   const header = (

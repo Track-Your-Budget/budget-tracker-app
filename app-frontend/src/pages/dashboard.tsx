@@ -156,7 +156,7 @@ export default function BudgetDashboard() {
             headerAction={
               <Button asChild variant="secondary" size="sm" className="px-0">
                 <Link to="/transactions">
-                  Alle anzeigen <ArrowRight />
+                  View all <ArrowRight />
                 </Link>
               </Button>
             }

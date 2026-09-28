@@ -16,8 +16,8 @@ import { formatWholeCurrency } from '@/lib/format'
 // ticks, tooltip and legend are styled by ChartContainer / ChartTooltipContent
 // through the same tokens.
 const chartConfig = {
-  income: { label: 'Einnahmen', color: 'var(--chart-1)' },
-  expense: { label: 'Ausgaben', color: 'var(--chart-4)' },
+  income: { label: 'Income', color: 'var(--chart-1)' },
+  expense: { label: 'Expenses', color: 'var(--chart-4)' },
 } satisfies ChartConfig
 
 interface ExpenseChartProps {
@@ -30,7 +30,7 @@ export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
     return (
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle>Monatliche Übersicht</CardTitle>
+          <CardTitle>Monthly overview</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] animate-pulse rounded bg-muted" />
@@ -42,7 +42,7 @@ export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
   return (
     <Card className="border-border/50">
       <CardHeader>
-        <CardTitle>Monatliche Übersicht</CardTitle>
+        <CardTitle>Monthly overview</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full">
