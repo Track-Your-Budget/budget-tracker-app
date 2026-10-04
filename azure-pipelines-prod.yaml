@@ -113,7 +113,7 @@ stages:
     
     # 1. Lade die aktualisierte docker-compose.yml auf den Server hoch
     - task: CopyFilesOverSSH@0
-      displayName: 'Copy docker-compose.yml to VPS'
+      displayName: 'Copy docker-compose-prod.yml to VPS'
       inputs:
         sshEndpoint: 'Hetzner-VPS-Connection' # Name deiner Azure DevOps SSH Connection
         sourceFolder: '$(System.DefaultWorkingDirectory)'
