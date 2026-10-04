@@ -3,11 +3,6 @@ trigger:
     include:
       - prod
 
-pr:
-  branches:
-    include:
-      - prod
-
 pool:
   name: 'Default'
 
