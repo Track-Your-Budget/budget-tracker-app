@@ -117,7 +117,7 @@ stages:
       inputs:
         sshEndpoint: 'Hetzner-VPS-Connection' # Name deiner Azure DevOps SSH Connection
         sourceFolder: '$(System.DefaultWorkingDirectory)'
-        contents: 'docker-compose.yml' # Passe den Namen an, falls die Datei anders heißt
+        contents: 'docker-compose-prod.yml' # Passe den Namen an, falls die Datei anders heißt
         targetFolder: '/opt/budget'    # Pfad auf deinem Server, wo das Projekt liegt
         readyTimeout: '20000'
 
