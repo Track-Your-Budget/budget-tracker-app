@@ -1,0 +1,148 @@
+trigger:
+  branches:
+    include:
+      - prod
+
+pr:
+  branches:
+    include:
+      - prod
+
+pool:
+  name: 'Default'
+
+variables:
+- group: budget-tracker-secrets
+- name: npm_config_cache
+  value: $(Pipeline.Workspace)/.npm
+- name: PIP_CACHE_DIR
+  value: $(Pipeline.Workspace)/.pip
+
+stages:
+
+# ── STAGE 1: TEST & LINT ──────────────────────────────────────────────────────
+- stage: Test
+  displayName: 'Test & Lint'
+  jobs:
+  - job: Frontend_Test
+    displayName: 'Frontend — Lint'
+    steps:
+    - task: Cache@2
+      inputs:
+        key: 'npm | "$(Agent.OS)" | app-frontend/package-lock.json'
+        restoreKeys: 'npm | "$(Agent.OS)"'
+        path: $(npm_config_cache)
+      displayName: 'Cache npm'
+    - script: |
+        cd app-frontend
+        npm ci
+        npm run lint
+      displayName: 'Install & Lint'
+
+  - job: Backend_Test
+    displayName: 'Backend — Check & Test'
+    steps:
+    - task: Cache@2
+      inputs:
+        key: 'pip | "$(Agent.OS)" | backend/requirements.txt'
+        restoreKeys: 'pip | "$(Agent.OS)"'
+        path: $(PIP_CACHE_DIR)
+      displayName: 'Cache pip'
+    - script: |
+        python3 -m venv backend/venv
+        source backend/venv/bin/activate
+        pip install --cache-dir $(PIP_CACHE_DIR) -r backend/requirements.txt
+      displayName: 'Install dependencies'
+    - script: |
+        source backend/venv/bin/activate
+        cd backend
+        python manage.py check
+        python manage.py test
+      displayName: 'Django Check & Run Tests'
+      env:
+        DJANGO_SECRET_KEY: $(DJANGO_SECRET_KEY)
+        POSTGRES_DB: $(POSTGRES_DB)
+        POSTGRES_USER: $(POSTGRES_USER)
+        POSTGRES_PASSWORD: $(POSTGRES_PASSWORD)
+        POSTGRES_HOST: $(POSTGRES_HOST)
+        POSTGRES_PORT: $(POSTGRES_PORT)
+
+
+# ── STAGE 2: DEPLOY (BUILD & PUSH DOCKER IMAGES) ──────────────────────────────
+- stage: Deploy
+  displayName: 'Build & Push Docker Images'
+  dependsOn: Test
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/prod'))
+  jobs:
+  - deployment: Push_Images_Prod
+    displayName: 'Build & Push (Hetzner Prod)'
+    environment: 'hetzner-production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - task: Docker@2
+            displayName: 'Login to Docker Hub'
+            inputs:
+              command: login
+              containerRegistry: 'DockerHub-Connection'
+          - script: |
+              docker build \
+                -t eduardgohl/budget-tracker-frontend:$(Build.BuildId) \
+                -t eduardgohl/budget-tracker-frontend:prod-latest \
+                -f app-frontend/Dockerfile app-frontend
+              docker push eduardgohl/budget-tracker-frontend:$(Build.BuildId)
+              docker push eduardgohl/budget-tracker-frontend:prod-latest
+            displayName: 'Build & Push Frontend'
+          - script: |
+              docker build \
+                -t eduardgohl/budget-tracker-backend:$(Build.BuildId) \
+                -t eduardgohl/budget-tracker-backend:prod-latest \
+                -f backend/Dockerfile backend
+              docker push eduardgohl/budget-tracker-backend:$(Build.BuildId)
+              docker push eduardgohl/budget-tracker-backend:prod-latest
+            displayName: 'Build & Push Backend'
+
+
+# ── STAGE 3: DEPLOY TO HETZNER VPS ────────────────────────────────────────────
+- stage: DeployHetzner
+  displayName: 'Deploy to Hetzner VPS via SSH'
+  dependsOn: Deploy
+  condition: succeeded()
+  jobs:
+  - job: DeployDockerCompose
+    displayName: 'Update Docker Compose on VPS'
+    steps:
+    - checkout: self
+    
+    # 1. Lade die aktualisierte docker-compose.yml auf den Server hoch
+    - task: CopyFilesOverSSH@0
+      displayName: 'Copy docker-compose.yml to VPS'
+      inputs:
+        sshEndpoint: 'Hetzner-VPS-Connection' # Name deiner Azure DevOps SSH Connection
+        sourceFolder: '$(System.DefaultWorkingDirectory)'
+        contents: 'docker-compose.yml' # Passe den Namen an, falls die Datei anders heißt
+        targetFolder: '/opt/budget'    # Pfad auf deinem Server, wo das Projekt liegt
+        readyTimeout: '20000'
+
+    # 2. Verbinde dich per SSH, update die .env und starte die Container
+    - task: SSH@0
+      displayName: 'Update .env & Run Docker Compose'
+      inputs:
+        sshEndpoint: 'Hetzner-VPS-Connection'
+        runOptions: 'inline'
+        inline: |
+          cd /opt/budget
+          
+          # Entferne die alte IMAGE_TAG Zeile (falls vorhanden) aus der .env
+          sed -i '/^IMAGE_TAG=/d' .env
+          
+          # Schreibe die neue Build-ID als IMAGE_TAG in die .env
+          echo "IMAGE_TAG=$(Build.BuildId)" >> .env
+          
+          # Lade die neuen Images herunter
+          docker compose pull frontend backend
+          
+          # Starte die neuen Container (Downtime ist dank "restart: unless-stopped" minimal)
+          docker compose up -d
