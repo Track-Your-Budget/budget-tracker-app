@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Plus } from 'lucide-react'
+import { Check, Mic, Plus } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -125,10 +125,15 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
               <NotesField control={form.control} name="notes" />
             </div>
             <DialogFooter className="grid grid-cols-2 gap-2">
-              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
-                Cancel
+              {/* Voice entry: placeholder, recording is not wired up yet. */}
+              <Button type="button" variant="outline" className="gap-2">
+                <Mic className="size-4" />
+                Record by voice
               </Button>
-              <Button type="submit">Save</Button>
+              <Button type="submit" className="gap-2">
+                <Check className="size-4" />
+                Save
+              </Button>
             </DialogFooter>
           </form>
         </Form>

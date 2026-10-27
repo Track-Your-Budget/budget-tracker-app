@@ -177,39 +177,42 @@ function TransactionDetailsForm({
                 )}
               />
             </div>
-            <FormField
-              control={form.control}
-              name="title"
-              rules={{
-                validate: (value) => value.trim().length > 0 || 'Please enter a title.',
-              }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input disabled={!isEditing} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="amount"
-              rules={{
-                required: 'Please enter an amount.',
-                validate: (value) => parseAmount(value) > 0 || 'The amount must be greater than 0.',
-              }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount (€)</FormLabel>
-                  <FormControl>
-                    <Input disabled={!isEditing} inputMode="decimal" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="title"
+                rules={{
+                  validate: (value) => value.trim().length > 0 || 'Please enter a title.',
+                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input disabled={!isEditing} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="amount"
+                rules={{
+                  required: 'Please enter an amount.',
+                  validate: (value) =>
+                    parseAmount(value) > 0 || 'The amount must be greater than 0.',
+                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount (€)</FormLabel>
+                    <FormControl>
+                      <Input disabled={!isEditing} inputMode="decimal" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="date"
