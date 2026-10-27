@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import axios from 'axios'
 import { useToast } from '@/hooks/use-toast'
 import {
   classifyTransaction,
@@ -8,7 +9,8 @@ import {
   type QuickTransactionInput,
 } from '@/lib/api/transactions'
 import type { Transaction } from '@/lib/types'
-import { getCategoryLabel } from '@/lib/format'
+import { formatCurrency, formatDate, getCategoryLabel } from '@/lib/format'
+import { todayIso } from '@/lib/transaction-form'
 
 interface MutationCallbacks {
   onCreated?: (transaction: Transaction) => void
@@ -35,27 +37,44 @@ export function useTransactionMutations({ onCreated, onUpdated, onDeleted }: Mut
   // Two requests on purpose: classify, then save. Keeping them apart means a
   // later "preview before saving" needs no backend change, and a failed save
   // never leaves a half-classified row behind.
+  // Resolves to whether the row was saved, so the form can stay open otherwise.
   const create = useCallback(
-    async (input: QuickTransactionInput) => {
+    async (input: QuickTransactionInput): Promise<boolean> => {
       try {
-        const verdict = await classifyTransaction({ title: input.title, notes: input.notes })
+        const today = todayIso()
+        const verdict = await classifyTransaction({ text: input.text, today })
         const saved = await createTransaction({
-          ...input,
+          title: verdict.title,
+          amount: verdict.amount,
+          date: verdict.date,
+          // The typed line stays visible in the details, so a wrong split can be fixed.
+          notes: input.text,
           category: verdict.category,
           type: verdict.type,
         })
         onCreated?.(saved)
+        // Only name the date when it came from the text, so it can be checked.
+        const when = saved.date === today ? '' : `, ${formatDate(saved.date)}`
+        const parsed = `${saved.title}, ${formatCurrency(saved.amount)}${when}`
         if (verdict.source === 'ai') {
           notify(
             'Saved',
-            `Filed as ${getCategoryLabel(saved.category)} (${saved.type}). Open it to correct.`,
+            `${parsed}: filed as ${getCategoryLabel(saved.category)} (${saved.type}). Open it to correct.`,
           )
         } else {
-          notify('Saved', 'Category could not be detected; filed as Miscellaneous.')
+          notify('Saved', `${parsed}: category could not be detected; filed as Miscellaneous.`)
         }
+        return true
       } catch (error) {
+        // The server could not find an amount (or a title) in the text.
+        const textError = axios.isAxiosError(error) ? error.response?.data?.text?.[0] : undefined
+        if (textError) {
+          fail('Check your entry', textError)
+          return false
+        }
         console.error('Error creating transaction:', error)
         fail('Save failed', 'The transaction could not be saved.')
+        return false
       }
     },
     [onCreated, notify, fail],

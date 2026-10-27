@@ -15,10 +15,11 @@ export interface TransactionFormValues {
 }
 
 /**
- * What the quick-add form collects: category and type are not asked for, they
- * are derived from title + notes afterwards.
+ * What the quick-add form collects: title, amount and date share one line,
+ * and category and type are not asked for; the server derives all five.
+ * The line itself is kept as the transaction's notes.
  */
-export type QuickAddFormValues = Pick<TransactionFormValues, 'title' | 'amount' | 'date' | 'notes'>
+export type QuickAddFormValues = { text: string }
 
 /**
  * `"12,50"` and `"12.50"` both become `12.5`; anything unparsable becomes

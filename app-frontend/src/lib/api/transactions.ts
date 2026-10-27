@@ -14,15 +14,30 @@ export interface TransactionQuery {
 
 export type NewTransaction = Omit<Transaction, 'id'>
 
-/** What the quick-add form collects; category and type are derived server-side. */
-export type QuickTransactionInput = Omit<NewTransaction, 'category' | 'type'>
+/**
+ * What the quick-add form collects. `text` holds title, amount and maybe a
+ * date in one line ("Rewe 23,50 gestern"); the server splits it and derives
+ * category and type. The line is saved unchanged as the notes.
+ */
+export type QuickTransactionInput = { text: string }
 
 /** Answer of `POST /api/transactions/classify/`. */
 export interface Classification {
+  /**
+   * The word of `text` the model picked as title; without a model, `text`
+   * minus amount and date phrase.
+   */
+  title: string
+  amount: number
+  /** ISO date; `today` when the text named none. */
+  date: string
   category: string
   type: Transaction['type']
-  /** `null` when the model had no opinion and the server fell back to defaults. */
-  confidence: { category: number; type: number } | null
+  /**
+   * `null` when the model had no opinion and the server fell back to defaults.
+   * `amount` / `date` are only there when the text held candidates to pick from.
+   */
+  confidence: { category: number; type: number; amount?: number; date?: number } | null
   source: 'ai' | 'fallback'
   model?: string
 }
@@ -58,11 +73,14 @@ export async function fetchRecentTransactions(count: number): Promise<Transactio
 }
 
 /**
- * Ask the server which category and type fit `title` + `notes`. Never throws
- * on model trouble: the server answers with a fallback and `source: 'fallback'`.
+ * Let the server split `text` into title, amount and date and pick category
+ * and type. `today` is the user's local date, so "gestern" means their
+ * yesterday. Never throws on model trouble: the server answers with a
+ * fallback and `source: 'fallback'`. A `text` without an amount is a 400 on
+ * `text`.
  */
 export async function classifyTransaction(
-  input: Pick<QuickTransactionInput, 'title' | 'notes'>,
+  input: QuickTransactionInput & { today: string },
 ): Promise<Classification> {
   const response = await apiClient.post<Classification>('/transactions/classify/', input)
   return response.data

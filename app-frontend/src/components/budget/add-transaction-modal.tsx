@@ -19,33 +19,28 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { DateField, NotesField } from '@/components/budget/transaction-form-fields'
 import type { QuickTransactionInput } from '@/lib/api/transactions'
-import { parseAmount, todayIso, type QuickAddFormValues } from '@/lib/transaction-form'
+import type { QuickAddFormValues } from '@/lib/transaction-form'
 
 interface AddTransactionModalProps {
-  /** Category and type are not part of the input; the server derives them. */
-  onAddTransaction: (transaction: QuickTransactionInput) => void
+  /**
+   * Title, amount, date, category and type are derived server-side from `text`.
+   * Resolves to whether it was saved; the dialog stays open otherwise.
+   */
+  onAddTransaction: (transaction: QuickTransactionInput) => Promise<boolean>
 }
 
 const emptyValues = (): QuickAddFormValues => ({
-  title: '',
-  amount: '',
-  date: todayIso(),
-  notes: '',
+  text: '',
 })
 
 export function AddTransactionModal({ onAddTransaction }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false)
   const form = useForm<QuickAddFormValues>({ defaultValues: emptyValues() })
 
-  const handleSubmit = (values: QuickAddFormValues) => {
-    onAddTransaction({
-      title: values.title.trim(),
-      amount: parseAmount(values.amount),
-      date: values.date,
-      notes: values.notes.trim(),
-    })
+  const handleSubmit = async (values: QuickAddFormValues) => {
+    const saved = await onAddTransaction({ text: values.text.trim() })
+    if (!saved) return
     form.reset(emptyValues())
     setOpen(false)
   }
@@ -68,61 +63,30 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
           <DialogTitle>New transaction</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          {/* key resets the collapsed notes field together with the values */}
           <form
-            key={open ? 'open' : 'closed'}
             onSubmit={form.handleSubmit(handleSubmit)}
             noValidate
           >
             <div className="grid gap-4 py-4">
+              {/* Title, amount and an optional date ("gestern") in one line;
+                  the server picks them apart, no date means today. */}
               <FormField
                 control={form.control}
-                name="title"
+                name="text"
                 rules={{
-                  validate: (value) => value.trim().length > 0 || 'Please enter a title.',
-                }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Groceries, Salary…" autoFocus {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="amount"
-                rules={{
-                  required: 'Please enter an amount.',
                   validate: (value) =>
-                    parseAmount(value) > 0 || 'The amount must be greater than 0.',
+                    value.trim().length > 0 || 'Please describe the transaction.',
                 }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount (€)</FormLabel>
+                    <FormLabel>What and how much?</FormLabel>
                     <FormControl>
-                      {/* Text + decimal keyboard instead of type="number": accepts
-                          "12,50" as well as "12.50" and never scrolls the value. */}
-                      <Input inputMode="decimal" placeholder="0.00" {...field} />
+                      <Input placeholder="e.g. Rewe 23,50 yesterday" autoFocus {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date</FormLabel>
-                    <DateField value={field.value} onChange={field.onChange} />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <NotesField control={form.control} name="notes" />
             </div>
             <DialogFooter className="grid grid-cols-2 gap-2">
               {/* Voice entry: placeholder, recording is not wired up yet. */}
@@ -130,7 +94,7 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                 <Mic className="size-4" />
                 Record by voice
               </Button>
-              <Button type="submit" className="gap-2">
+              <Button type="submit" className="gap-2" disabled={form.formState.isSubmitting}>
                 <Check className="size-4" />
                 Save
               </Button>
