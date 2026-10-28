@@ -53,8 +53,8 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button className="gap-2 px-3 py-2">
-          <Plus className="h-4 w-4" />
+        <Button className="gap-2 px-3 py-2 text-base font-medium rounded-2xl">
+          <Plus className="size-6" />
           Add transaction
         </Button>
       </DialogTrigger>
@@ -79,23 +79,35 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                 }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What and how much?</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Rewe 23,50 yesterday" autoFocus {...field} />
-                    </FormControl>
+                    <FormLabel className="justify-center text-lg">What and how much?</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. Rewe 23,50 yesterday"
+                          className="h-12 pl-4 pr-16 md:text-base border border-primary/50"
+                          autoFocus
+                          {...field}
+                        />
+                      </FormControl>
+                      {/* Voice entry: placeholder, recording is not wired up yet. */}
+                      <div className="absolute inset-y-0 right-0 flex items-center border-l border-input px-1.5 ">
+                        <button
+                          className="hover:cursor-pointer px-2"
+                          aria-label="Add by voice"
+                          title="Add by voice"
+                        >
+                          <Mic className="size-7" />
+                        </button>
+                      </div>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            <DialogFooter className="grid grid-cols-2 gap-2">
-              {/* Voice entry: placeholder, recording is not wired up yet. */}
-              <Button type="button" variant="outline" className="gap-2">
-                <Mic className="size-4" />
-                Record by voice
-              </Button>
-              <Button type="submit" className="gap-2" disabled={form.formState.isSubmitting}>
-                <Check className="size-4" />
+            <DialogFooter>
+              <Button type="submit" className="w-full gap-2 text-base" disabled={form.formState.isSubmitting}>
+                <Check className="size-6" />
                 Save
               </Button>
             </DialogFooter>
