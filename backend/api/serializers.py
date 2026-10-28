@@ -1,5 +1,8 @@
+from django.utils import timezone
 from rest_framework import serializers
 from .models import Transaction
+from .services.date_mentions import find_dates
+from .services.quick_entry import find_amounts, find_words
 from django.contrib.auth.models import User
 
 class JWTSerializer(serializers.Serializer):
@@ -128,7 +131,30 @@ class OnboardingSerializer(serializers.Serializer):
 
 
 class ClassifyRequestSerializer(serializers.Serializer):
-    """Input of POST /transactions/classify/: the free text the user typed."""
+    """Input of POST /transactions/classify/: the one line the user typed.
 
-    title = serializers.CharField(max_length=255)
-    notes = serializers.CharField(required=False, allow_blank=True, default='')
+    ``text`` holds the title word, amount and maybe a date ("Rewe 23,50 gestern");
+    validation adds the candidates found in it as ``amounts`` and ``dates``,
+    which the view picks from. ``today`` is the user's local date, so
+    "gestern" means their yesterday, not the server's.
+    """
+
+    text = serializers.CharField(max_length=255)
+    today = serializers.DateField(required=False)
+
+    def validate(self, attrs):
+        text = attrs['text']
+        today = attrs.get('today') or timezone.localdate()
+        dates = find_dates(text, today)
+        amounts = find_amounts(text, dates)
+        if not amounts:
+            raise serializers.ValidationError(
+                {'text': 'Add an amount greater than 0, e.g. "Rewe 23,50".'}
+            )
+        # Without a word outside amounts and dates there is nothing to
+        # title the row with.
+        if not find_words(text, *amounts, *dates):
+            raise serializers.ValidationError(
+                {'text': 'Add a short description next to the amount.'}
+            )
+        return {**attrs, 'today': today, 'amounts': amounts, 'dates': dates}

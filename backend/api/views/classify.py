@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from ..models import Transaction
 from ..serializers import ClassifyRequestSerializer
-from ..services.classifier import classify
+from ..services.quick_entry import parse_quick_entry
 
 # What the client gets when the model has no opinion. The row is still
 # saveable and the user can correct it in the details dialog.
@@ -28,22 +28,31 @@ class TransactionClassifyView(APIView):
     def post(self, request):
         serializer = ClassifyRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        result = classify(**serializer.validated_data)
+        entry = parse_quick_entry(data['text'], data['amounts'], data['dates'], data['today'])
+        # Echoed back so the client saves exactly what was parsed here.
+        parsed = {'title': entry.title, 'amount': entry.amount, 'date': entry.date}
+
+        result = entry.classification
         if result is None:
             return Response(
-                {**FALLBACK, 'confidence': None, 'source': 'fallback'},
+                {**parsed, **FALLBACK, 'confidence': None, 'source': 'fallback'},
                 status=status.HTTP_200_OK,
             )
 
+        confidence = {'category': result.category_confidence, 'type': result.type_confidence}
+        # Only present when the text held something to choose from.
+        for pick in ('amount', 'date'):
+            if (value := getattr(result, f'{pick}_confidence')) is not None:
+                confidence[pick] = value
+
         return Response(
             {
+                **parsed,
                 'category': result.category,
                 'type': result.type,
-                'confidence': {
-                    'category': result.category_confidence,
-                    'type': result.type_confidence,
-                },
+                'confidence': confidence,
                 'source': 'ai',
                 'model': result.model,
             },
