@@ -117,6 +117,7 @@ stages:
       inputs:
         sshEndpoint: 'Hetzner-VPS-Connection'
         runOptions: 'inline'
+        failOnStdErr: false   
         inline: |
           cd /opt/budget
           
