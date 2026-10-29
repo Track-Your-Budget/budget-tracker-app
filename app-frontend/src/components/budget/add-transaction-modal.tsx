@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Check, Mic, Plus } from 'lucide-react'
+import { Check, LoaderCircle, Mic, Plus, Square } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { useToast } from '@/hooks/use-toast'
+import { useVoiceInput } from '@/hooks/use-voice-input'
 import type { QuickTransactionInput } from '@/lib/api/transactions'
 import type { QuickAddFormValues } from '@/lib/transaction-form'
 
@@ -37,6 +39,18 @@ const emptyValues = (): QuickAddFormValues => ({
 export function AddTransactionModal({ onAddTransaction }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false)
   const form = useForm<QuickAddFormValues>({ defaultValues: emptyValues() })
+  const { toast } = useToast()
+  const voice = useVoiceInput((error) => {
+    console.error('Voice input failed', error)
+    toast({
+      title: 'Voice input failed',
+      description:
+        error instanceof DOMException && error.name === 'NotAllowedError'
+          ? 'Microphone access was denied.'
+          : 'Could not record or transcribe. Please type the transaction instead.',
+      variant: 'destructive',
+    })
+  })
 
   const handleSubmit = async (values: QuickAddFormValues) => {
     const saved = await onAddTransaction({ text: values.text.trim() })
@@ -46,7 +60,10 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
   }
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) form.reset(emptyValues())
+    if (!next) {
+      voice.cancel()
+      form.reset(emptyValues())
+    }
     setOpen(next)
   }
 
@@ -89,14 +106,24 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                           {...field}
                         />
                       </FormControl>
-                      {/* Voice entry: placeholder, recording is not wired up yet. */}
+                      {/* Voice entry: tap to record, tap again to send the audio to the server. */}
                       <div className="absolute inset-y-0 right-0 flex items-center border-l border-input px-1.5 ">
                         <button
-                          className="hover:cursor-pointer px-2"
-                          aria-label="Add by voice"
-                          title="Add by voice"
+                          type="button"
+                          className="hover:cursor-pointer px-2 disabled:cursor-wait disabled:opacity-60"
+                          onClick={voice.status === 'recording' ? voice.stop : voice.start}
+                          disabled={voice.status === 'sending'}
+                          aria-pressed={voice.status === 'recording'}
+                          aria-label={voice.status === 'recording' ? 'Stop recording' : 'Add by voice'}
+                          title={voice.status === 'recording' ? 'Stop recording' : 'Add by voice'}
                         >
-                          <Mic className="size-7" />
+                          {voice.status === 'recording' ? (
+                            <Square className="size-6 fill-destructive text-destructive animate-pulse" />
+                          ) : voice.status === 'sending' ? (
+                            <LoaderCircle className="size-7 animate-spin" />
+                          ) : (
+                            <Mic className="size-7" />
+                          )}
                         </button>
                       </div>
                     </div>

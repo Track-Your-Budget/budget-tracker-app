@@ -86,6 +86,26 @@ export async function classifyTransaction(
   return response.data
 }
 
+/** Answer of `POST /api/transactions/transcribe/`. */
+export interface Transcription {
+  text: string
+}
+
+/**
+ * Send a voice recording to the server, which transcribes it (Whisper via
+ * Groq). The file name carries the extension so the server knows the format.
+ */
+export async function transcribeAudio(audio: Blob): Promise<Transcription> {
+  const extension = audio.type.split(';')[0].split('/')[1] || 'webm'
+  const body = new FormData()
+  body.append('audio', audio, `voice.${extension}`)
+  // Overrides the client's JSON default; axios then lets the browser set the boundary.
+  const response = await apiClient.post<Transcription>('/transactions/transcribe/', body, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return response.data
+}
+
 export async function createTransaction(transaction: NewTransaction): Promise<Transaction> {
   const response = await apiClient.post<Transaction>('/transactions/', transaction)
   return response.data
