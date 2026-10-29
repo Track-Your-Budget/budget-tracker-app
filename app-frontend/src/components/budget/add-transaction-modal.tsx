@@ -40,17 +40,24 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
   const [open, setOpen] = useState(false)
   const form = useForm<QuickAddFormValues>({ defaultValues: emptyValues() })
   const { toast } = useToast()
-  const voice = useVoiceInput((error) => {
-    console.error('Voice input failed', error)
-    toast({
-      title: 'Voice input failed',
-      description:
-        error instanceof DOMException && error.name === 'NotAllowedError'
-          ? 'Microphone access was denied.'
-          : 'Could not record or transcribe. Please type the transaction instead.',
-      variant: 'destructive',
-    })
-  })
+  const voice = useVoiceInput(
+    (text) => {
+      // Lands in the field rather than being saved directly, so the user can correct it first.
+      form.setValue('text', text, { shouldDirty: true, shouldValidate: true })
+      form.setFocus('text')
+    },
+    (error) => {
+      console.error('Voice input failed', error)
+      toast({
+        title: 'Voice input failed',
+        description:
+          error instanceof DOMException && error.name === 'NotAllowedError'
+            ? 'Microphone access was denied.'
+            : 'Could not record or transcribe. Please type the transaction instead.',
+        variant: 'destructive',
+      })
+    },
+  )
 
   const handleSubmit = async (values: QuickAddFormValues) => {
     const saved = await onAddTransaction({ text: values.text.trim() })

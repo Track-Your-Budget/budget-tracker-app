@@ -8,7 +8,10 @@ export type VoiceInputStatus = 'idle' | 'recording' | 'sending'
 const MIME_TYPES = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4']
 
 /** Records from the microphone and sends the audio to the server for transcription. */
-export function useVoiceInput(onError: (error: unknown) => void) {
+export function useVoiceInput(
+  onTranscript: (text: string) => void,
+  onError: (error: unknown) => void,
+) {
   const [status, setStatus] = React.useState<VoiceInputStatus>('idle')
   const recorderRef = React.useRef<MediaRecorder | null>(null)
 
@@ -24,8 +27,8 @@ export function useVoiceInput(onError: (error: unknown) => void) {
         recorderRef.current = null
         setStatus('sending')
         try {
-          // The transcript is not used yet.
-          await transcribeAudio(new Blob(chunks, { type: recorder.mimeType }))
+          const { text } = await transcribeAudio(new Blob(chunks, { type: recorder.mimeType }))
+          onTranscript(text.trim())
         } catch (error) {
           onError(error)
         } finally {
