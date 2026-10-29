@@ -158,3 +158,20 @@ class ClassifyRequestSerializer(serializers.Serializer):
                 {'text': 'Add a short description next to the amount.'}
             )
         return {**attrs, 'today': today, 'amounts': amounts, 'dates': dates}
+
+
+# Groq rejects files above 25 MB; a spoken quick entry is a few hundred KB.
+MAX_AUDIO_BYTES = 10 * 1024 * 1024
+
+
+class TranscribeRequestSerializer(serializers.Serializer):
+    """Input of POST /transactions/transcribe/: one recording from the browser."""
+
+    audio = serializers.FileField()
+
+    def validate_audio(self, audio):
+        if audio.size > MAX_AUDIO_BYTES:
+            raise serializers.ValidationError('The recording is too long.')
+        if not (audio.content_type or '').startswith('audio/'):
+            raise serializers.ValidationError('Upload an audio recording.')
+        return audio

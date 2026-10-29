@@ -11,6 +11,7 @@ from .insights import MonthInsightsView, YearInsightsView
 from .onboarding import OnboardingView
 from .summary import MonthlySummaryView
 from .transactions import TransactionDetailView, TransactionView
+from .transcribe import TransactionTranscribeView
 from .users import UserMe
 
 __all__ = [
@@ -24,6 +25,7 @@ __all__ = [
     'SocialProviderMisconfigured',
     'TransactionClassifyView',
     'TransactionDetailView',
+    'TransactionTranscribeView',
     'TransactionView',
     'UserMe',
     'YearInsightsView',

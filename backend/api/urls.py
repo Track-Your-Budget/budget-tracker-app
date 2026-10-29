@@ -11,6 +11,7 @@ from .views import (
     OnboardingView,
     TransactionClassifyView,
     TransactionDetailView,
+    TransactionTranscribeView,
     TransactionView,
     UserMe,
     YearInsightsView,
@@ -36,6 +37,8 @@ urlpatterns = [
     # Must sit before the <int:pk> route only for readability; 'classify' can
     # never match <int:pk> anyway.
     path('transactions/classify/', TransactionClassifyView.as_view(), name='transaction_classify'),
+    # Voice input of the quick-add dialog: audio in, text out.
+    path('transactions/transcribe/', TransactionTranscribeView.as_view(), name='transaction_transcribe'),
     path('transactions/<int:pk>/', TransactionDetailView.as_view(), name='transaction_detail'),
     path('monthly-summary/', MonthlySummaryView.as_view(), name='monthly_summary'),
     # One month compared with the one before; the insights page.

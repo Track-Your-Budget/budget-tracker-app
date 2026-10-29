@@ -89,6 +89,7 @@ REST_FRAMEWORK = {
     # client, not a hard global quota.
     'DEFAULT_THROTTLE_RATES': {
         'classify': '30/min',
+        'transcribe': '10/min',
     },
 }
 
@@ -146,6 +147,11 @@ FRONTEND_URL = os.getenv('FRONTEND_URL')
 # Pin the model version once thresholds are tuned: "jev-latest" moves silently.
 TYPESAFE_API_KEY = os.getenv('TYPESAFE_API_KEY')
 TYPESAFE_MODEL = os.getenv('TYPESAFE_MODEL', 'jev-latest')
+
+# Whisper on Groq transcribes voice input of the quick-add dialog. Without a
+# key the endpoint answers 503 and the user types instead.
+WHISPER_API_KEY = os.getenv('WHISPER_API_KEY')
+WHISPER_MODEL = os.getenv('WHISPER_MODEL', 'whisper-large-v3')
 
 SOCIAL_AUTH_REDIRECT_URL = FRONTEND_URL
 

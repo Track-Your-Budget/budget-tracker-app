@@ -11,13 +11,15 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
+from groq import GroqError
 from rest_framework.test import APITestCase
 
-from api.services import classifier
+from api.services import classifier, transcriber
 from api.services.classifier import Classification, classify
 from api.services.date_mentions import find_dates
 from api.services.quick_entry import (
@@ -420,3 +422,73 @@ class ParseQuickEntryTests(SimpleTestCase):
     def test_date_phrase_is_trusted_without_model(self):
         entry, _ = self.parse('Tanken 60 vor 4 Tagen', None)
         self.assertEqual((entry.title, entry.date), ('Tanken', date(2026, 10, 23)))
+
+
+class FakeGroq:
+    """Stands in for groq.Groq: records the call, answers or raises."""
+
+    def __init__(self, text='', error=None):
+        self.kwargs = None
+
+        def create(**kwargs):
+            self.kwargs = kwargs
+            if error is not None:
+                raise error
+            return SimpleNamespace(text=text)
+
+        self.audio = SimpleNamespace(transcriptions=SimpleNamespace(create=create))
+
+
+class TranscribeEndpointTests(APITestCase):
+    """Groq is always mocked, like TypeSafe above."""
+
+    url = reverse('transaction_transcribe')
+
+    def setUp(self):
+        cache.clear()
+        transcriber._client.cache_clear()
+        self.user = User.objects.create_user('alice', password='x')
+        self.client.force_authenticate(self.user)
+
+    def recording(self, content=b'fake-opus', content_type='audio/webm'):
+        return SimpleUploadedFile('voice.webm', content, content_type=content_type)
+
+    def post(self, audio):
+        return self.client.post(self.url, {'audio': audio}, format='multipart')
+
+    def test_requires_authentication(self):
+        self.client.force_authenticate(None)
+        self.assertEqual(self.post(self.recording()).status_code, 401)
+
+    def test_audio_is_required(self):
+        response = self.client.post(self.url, {}, format='multipart')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('audio', response.data)
+
+    def test_rejects_non_audio(self):
+        with patch('api.services.transcriber._client') as mocked:
+            response = self.post(self.recording(content_type='text/plain'))
+        self.assertEqual(response.status_code, 400)
+        mocked.assert_not_called()
+
+    @override_settings(WHISPER_MODEL='whisper-test')
+    def test_returns_transcript_of_german_audio(self):
+        fake = FakeGroq(text=' Rewe 23,50 gestern ')
+        with patch('api.services.transcriber._client', return_value=fake):
+            response = self.post(self.recording())
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {'text': 'Rewe 23,50 gestern'})
+        self.assertEqual(fake.kwargs['file'], ('voice.webm', b'fake-opus'))
+        self.assertEqual(fake.kwargs['model'], 'whisper-test')
+        self.assertEqual(fake.kwargs['language'], 'de')
+
+    def test_upstream_failure_is_503(self):
+        fake = FakeGroq(error=GroqError('down'))
+        with patch('api.services.transcriber._client', return_value=fake):
+            response = self.post(self.recording())
+        self.assertEqual(response.status_code, 503)
+
+    @override_settings(WHISPER_API_KEY=None)
+    def test_missing_key_is_503(self):
+        response = self.post(self.recording())
+        self.assertEqual(response.status_code, 503)

@@ -3,6 +3,10 @@ import { transcribeAudio } from '@/lib/api/transactions'
 
 export type VoiceInputStatus = 'idle' | 'recording' | 'sending'
 
+// Asked for explicitly: left to itself the browser may label the recording
+// video/webm or nothing at all, which the server rejects as not audio.
+const MIME_TYPES = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4']
+
 /** Records from the microphone and sends the audio to the server for transcription. */
 export function useVoiceInput(onError: (error: unknown) => void) {
   const [status, setStatus] = React.useState<VoiceInputStatus>('idle')
@@ -11,7 +15,8 @@ export function useVoiceInput(onError: (error: unknown) => void) {
   const start = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
+      const mimeType = MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type))
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       const chunks: Blob[] = []
       recorder.ondataavailable = (event) => chunks.push(event.data)
       recorder.onstop = async () => {
